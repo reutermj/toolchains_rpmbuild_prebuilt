@@ -54,7 +54,7 @@ closest existing version to understand what issues each patch fixes:
 │   ├── static-linking.md        # Switches libraries to static, links rpmbuild statically
 │   └── static-linking.patch
 └── 6.0/
-    └── (same set of patches)
+    └── ...
 ```
 
 ### Understanding each patch
@@ -183,7 +183,34 @@ Verify that all `-D` flags used in `step-04_build_rpm` exist in the new
 version. If the new version adds or removes options, the build script may need
 version-conditional logic.
 
-## 6. Add the version to build workflows
+## 6. Test the build locally with Docker
+
+Before pushing to CI, verify the full build works locally using the Dockerfile.
+This catches issues like missing patches, compiler flag incompatibilities, or
+CMake configure errors without burning CI minutes:
+
+```bash
+docker build \
+    --build-arg GH_TOKEN=$(gh auth token) \
+    --build-arg RPM_VERSION=<VERSION> \
+    -f .github/workflows/build_rpmbuild/Dockerfile \
+    .
+```
+
+The Dockerfile runs the complete pipeline: install dependencies, download all
+sources, build all static libraries, apply patches, build RPM, collect licenses,
+and package the tarball.
+
+If the build fails, fix the patches and retry. Common issues:
+
+- **Compiler flag errors** (e.g. `-fhardened`): May need a patch to fix CMake
+  flag detection logic (see `fix-compiler-flag-check` in the 4.20 patches)
+- **Missing CMake options**: The new RPM version may not have all the `-D` flags
+  used in `step-04_build_rpm`
+- **C vs C++ differences**: Ensure patches target the correct file extension
+  (`.c` vs `.cc`) and use the correct language idioms
+
+## 7. Add the version to build workflows
 
 The build workflows (`build_rpmbuild_x86_64.yml` and
 `build_rpmbuild_aarch64.yml`) use a `workflow_dispatch` input with a choice
@@ -201,7 +228,7 @@ inputs:
       - "<NEW_VERSION>"  # Add here
 ```
 
-## 7. Update `rpmbuild_repo.bzl`
+## 8. Update `rpmbuild_repo.bzl`
 
 Add a date entry for the new version (use today's date):
 
@@ -213,7 +240,7 @@ _RELEASE_TO_DATE = {
 }
 ```
 
-## 8. Commit, push, and trigger builds
+## 9. Commit, push, and trigger builds
 
 ```bash
 git add -A
@@ -225,7 +252,7 @@ gh workflow run "Build rpmbuild (x86_64)" --ref main -f rpm_version=<VERSION>
 gh workflow run "Build rpmbuild (aarch64)" --ref main -f rpm_version=<VERSION>
 ```
 
-## 9. Wait for builds and update sha256 hashes
+## 10. Wait for builds and update sha256 hashes
 
 Monitor the builds:
 
@@ -258,7 +285,7 @@ _TARBALL_TO_SHA256 = {
 }
 ```
 
-## 10. Verify with Bazel
+## 11. Verify with Bazel
 
 Test the new version locally:
 
@@ -270,7 +297,7 @@ bazel clean --expunge
 bazel build //tests/rpm:hello-rpm
 ```
 
-## 11. Final commit
+## 12. Final commit
 
 ```bash
 git add private/rpmbuild_repo.bzl
