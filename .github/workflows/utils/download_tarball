@@ -39,7 +39,10 @@ gh release download binaries \
     --pattern "${TARBALL_NAME}" \
     --output "${TARBALL_PATH}"
 
-gh attestation verify "${TARBALL_PATH}" --repo reutermj/toolchains_rpmbuild_prebuilt
+# Only verify attestation for built artifacts, not upstream source tarballs
+if [[ "${TARBALL_NAME}" == rpmbuild-* ]]; then
+    gh attestation verify "${TARBALL_PATH}" --repo reutermj/toolchains_rpmbuild_prebuilt
+fi
 
 mkdir -p "${EXTRACT_DIR}"
 tar -xf "${TARBALL_PATH}" -C "${EXTRACT_DIR}"
