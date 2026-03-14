@@ -1,0 +1,13 @@
+"Prebuilt, statically linked rpmbuild toolchain for rules_pkg pkg_rpm()"
+
+module(name = "toolchains_rpmbuild_prebuilt")
+
+# ==================
+# || Dependencies ||
+# ==================
+bazel_dep(name = "rules_pkg", version = "1.2.0")
+
+# ======================
+# || Dev Dependencies ||
+# ======================
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1", dev_dependency = True)
