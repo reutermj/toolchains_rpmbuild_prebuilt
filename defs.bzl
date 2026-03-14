@@ -1,5 +1,5 @@
 """Public API for toolchains_rpmbuild_prebuilt."""
 
-load("//private:rpmbuild_repo.bzl", _rpmbuild_repo = "rpmbuild_repo")
+load("//private:rpmbuild_repo.bzl", _prebuilt_rpmbuild_toolchain = "prebuilt_rpmbuild_toolchain")
 
-rpmbuild_repo = _rpmbuild_repo
+prebuilt_rpmbuild_toolchain = _prebuilt_rpmbuild_toolchain

@@ -8,7 +8,7 @@ rpmbuild_toolchain(
 )
 
 toolchain(
-    name = "rpmbuild_toolchain",
+    name = "{name}",
     toolchain = ":rpmbuild_info",
     toolchain_type = "@rules_pkg//toolchains/rpm:rpmbuild_toolchain_type",
     exec_compatible_with = [

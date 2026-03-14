@@ -230,13 +230,14 @@ inputs:
 
 ## 8. Update `rpmbuild_repo.bzl`
 
-Add a date entry for the new version (use today's date):
+Add a version map entry for the new version. The key is major.minor, the value
+is a tuple of (latest patch version, build date):
 
 ```python
-_RELEASE_TO_DATE = {
-    "6.0.1": "20260314",
-    "4.20.1": "20260314",
-    "<NEW_VERSION>": "<YYYYMMDD>",
+_VERSION_MAP = {
+    "6.0": ("6.0.1", "20260314"),
+    "4.20": ("4.20.1", "20260314"),
+    "<MAJOR.MINOR>": ("<VERSION>", "<YYYYMMDD>"),
 }
 ```
 
@@ -291,7 +292,7 @@ Test the new version locally:
 
 ```bash
 # In MODULE.bazel, temporarily change the version:
-# rpmbuild(name = "rpmbuild", version = "<VERSION>", dev_dependency = True)
+# prebuilt_rpmbuild_toolchain(name = "rpmbuild", version = "<MAJOR.MINOR>", dev_dependency = True)
 
 bazel clean --expunge
 bazel build //tests/rpm:hello-rpm

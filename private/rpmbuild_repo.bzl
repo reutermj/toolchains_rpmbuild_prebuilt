@@ -16,25 +16,29 @@ _TARBALL_TO_SHA256 = {
     "rpmbuild-aarch64-linux-4.20.1-20260314.tar.xz": "9826fdc1e24509ba5c2ca4a02c2d797226959f8accba19d43cbbf5456d0fb498",
 }
 
-_RELEASE_TO_DATE = {
-    "6.0.1": "20260314",
-    "4.20.1": "20260314",
+# Maps major.minor version to the latest supported patch version and build date.
+_VERSION_MAP = {
+    "6.0": ("6.0.1", "20260314"),
+    "4.20": ("4.20.1", "20260314"),
 }
 
-def _rpmbuild_repo(rctx):
+def _prebuilt_rpmbuild_toolchain(rctx):
     arch = _ARCH_MAP.get(rctx.os.arch, None)
     if arch == None:
         fail("Unsupported host architecture: {}".format(rctx.os.arch))
 
-    version = rctx.attr.version
-    date = _RELEASE_TO_DATE.get(version, None)
-    if date == None:
+    # Allow overriding version via --repo_env={name}_version=<major.minor>
+    env_var = "{}_version".format(rctx.original_name)
+    version = rctx.os.environ.get(env_var, rctx.attr.version)
+    entry = _VERSION_MAP.get(version, None)
+    if entry == None:
         fail("Unsupported rpmbuild version: {}. Supported: {}".format(
             version,
-            ", ".join(_RELEASE_TO_DATE.keys()),
+            ", ".join(_VERSION_MAP.keys()),
         ))
 
-    tarball_name = "rpmbuild-{}-linux-{}-{}.tar.xz".format(arch, version, date)
+    patch_version, date = entry
+    tarball_name = "rpmbuild-{}-linux-{}-{}.tar.xz".format(arch, patch_version, date)
     sha256 = _TARBALL_TO_SHA256.get(tarball_name, "")
     if sha256 == "":
         fail("No sha256 for {}. Supported tarballs: {}".format(
@@ -61,17 +65,19 @@ def _rpmbuild_repo(rctx):
         Label("//private:BUILD.bazel.tpl"),
         substitutions = {
             "{rpmbuild_path}": rpmbuild_path,
-            "{version}": version,
+            "{version}": patch_version,
             "{cpu}": arch,
+            "{name}": rctx.original_name,
         },
     )
 
-rpmbuild_repo = repository_rule(
-    implementation = _rpmbuild_repo,
+prebuilt_rpmbuild_toolchain = repository_rule(
+    implementation = _prebuilt_rpmbuild_toolchain,
     attrs = {
         "version": attr.string(
-            default = "6.0.1",
-            doc = "RPM version to download.",
+            default = "6.0",
+            doc = "RPM major.minor version to download (e.g. \"6.0\", \"4.20\"). The latest patch release is used automatically. Can be overridden with --repo_env={name}_version=<major.minor>.",
         ),
     },
+    environ = ["rpmbuild_version"],
 )

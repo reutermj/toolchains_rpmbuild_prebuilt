@@ -16,6 +16,6 @@ bazel_dep(name = "buildifier_prebuilt", version = "8.5.1", dev_dependency = True
 # ================
 # || Toolchains ||
 # ================
-rpmbuild = use_repo_rule("//:defs.bzl", "rpmbuild_repo")
-rpmbuild(name = "rpmbuild", dev_dependency = True)
-register_toolchains("@rpmbuild//:rpmbuild_toolchain", dev_dependency = True)
+prebuilt_rpmbuild_toolchain = use_repo_rule("//:defs.bzl", "prebuilt_rpmbuild_toolchain")
+prebuilt_rpmbuild_toolchain(name = "rpmbuild", dev_dependency = True)
+register_toolchains("@rpmbuild", dev_dependency = True)
