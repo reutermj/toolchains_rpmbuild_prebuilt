@@ -32,7 +32,10 @@ def _prebuilt_rpmbuild_toolchain(rctx):
 
     # Allow overriding version via --repo_env={name}_version=<major.minor>
     env_var = "{}_version".format(rctx.original_name)
-    version = rctx.os.environ.get(env_var, rctx.attr.version)
+    version = rctx.getenv(env_var)
+    if version == None:
+        version = rctx.attr.version
+
     entry = _VERSION_MAP.get(version, None)
     if entry == None:
         fail("Unsupported rpmbuild version: {}. Supported: {}".format(
@@ -82,5 +85,4 @@ prebuilt_rpmbuild_toolchain = repository_rule(
             doc = "RPM major.minor version to download (e.g. \"6.0\", \"4.20\"). The latest patch release is used automatically. Can be overridden with --repo_env={name}_version=<major.minor>.",
         ),
     },
-    environ = ["rpmbuild_version"],
 )
