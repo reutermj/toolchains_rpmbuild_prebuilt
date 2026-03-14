@@ -80,11 +80,20 @@ case "${COMPONENT}" in
 
     sqlite)
         # SQLite uses a numeric version (e.g., 3510300) with a year-based URL.
-        # Discover the correct year by following the redirect from the download page.
+        # Try the current year first, then fall back to previous years.
         TARBALL="/tmp/sqlite-autoconf-${VERSION}.tar.gz"
-        SQLITE_URL=$(wget --spider "https://www.sqlite.org/2025/sqlite-autoconf-${VERSION}.tar.gz" 2>&1 | grep -oP 'https://\S+\.tar\.gz' | head -1 || true)
+        CURRENT_YEAR=$(date +%Y)
+        SQLITE_URL=""
+        for YEAR in $(seq "${CURRENT_YEAR}" -1 2020); do
+            URL="https://www.sqlite.org/${YEAR}/sqlite-autoconf-${VERSION}.tar.gz"
+            if wget --spider "${URL}" 2>/dev/null; then
+                SQLITE_URL="${URL}"
+                break
+            fi
+        done
         if [ -z "${SQLITE_URL}" ]; then
-            SQLITE_URL="https://www.sqlite.org/2025/sqlite-autoconf-${VERSION}.tar.gz"
+            echo "ERROR: Could not find sqlite-autoconf-${VERSION}.tar.gz on sqlite.org"
+            exit 1
         fi
         retry_with_backoff "${TARBALL}" \
             wget -O "${TARBALL}" "${SQLITE_URL}"
