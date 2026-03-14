@@ -10,7 +10,7 @@ _ARCH_MAP = {
 }
 
 _TARBALL_TO_SHA256 = {
-    "rpmbuild-x86_64-linux-6.0.1-20260314.tar.xz": "38af9915ad62aa55b3b4f1276c99840634fa1628c8433615c71bc9004ba706ca",
+    "rpmbuild-x86_64-linux-6.0.1-20260314.tar.xz": "25afc406f24e688beb1e3cf83d4e79864e3360b28efb066709d78925824d2b98",
 }
 
 _RELEASE_TO_DATE = {
