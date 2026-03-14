@@ -1,0 +1,79 @@
+--- a/rpmio/CMakeLists.txt
++++ b/rpmio/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-add_library(librpmio SHARED)
++add_library(librpmio STATIC)
+ 
+ target_sources(librpmio PRIVATE
+ 	argv.cc base64.cc digest.cc expression.cc macro.cc rpmhook.hh rpmhook.cc
+@@ -43,10 +43,6 @@
+ 	endif()
+ endif()
+ 
+-set_target_properties(librpmio PROPERTIES
+-	VERSION ${RPM_LIBVERSION}
+-	SOVERSION ${RPM_SOVERSION}
+-)
+ target_link_libraries(librpmio PRIVATE
+ 	PkgConfig::POPT
+ 	LUA::LUA
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -1,8 +1,4 @@
+-add_library(librpm SHARED)
+-set_target_properties(librpm PROPERTIES
+-	VERSION ${RPM_LIBVERSION}
+-	SOVERSION ${RPM_SOVERSION}
+-)
++add_library(librpm STATIC)
+ 
+ target_compile_definitions(librpm PRIVATE
+ 	LOCALEDIR="${CMAKE_INSTALL_FULL_LOCALEDIR}"
+--- a/build/CMakeLists.txt
++++ b/build/CMakeLists.txt
+@@ -1,8 +1,4 @@
+-add_library(librpmbuild SHARED)
+-set_target_properties(librpmbuild PROPERTIES
+-	VERSION ${RPM_LIBVERSION}
+-	SOVERSION ${RPM_SOVERSION}
+-)
++add_library(librpmbuild STATIC)
+ target_sources(librpmbuild PRIVATE
+ 	build.cc files.cc misc.cc pack.cc
+ 	parseSimpleScript.cc parseChangelog.cc parseDescription.cc
+--- a/sign/CMakeLists.txt
++++ b/sign/CMakeLists.txt
+@@ -1,8 +1,4 @@
+-add_library(librpmsign SHARED)
+-set_target_properties(librpmsign PROPERTIES
+-	VERSION ${RPM_LIBVERSION}
+-	SOVERSION ${RPM_SOVERSION}
+-)
++add_library(librpmsign STATIC)
+ target_sources(librpmsign PRIVATE rpmgensig.cc)
+ 
+ target_include_directories(librpmsign
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -68,3 +68,7 @@
+ )
+ install(TARGETS rpmdeps rpmdump rpmuncompress DESTINATION ${RPM_CONFIGDIR})
+ 
++
++# Static link rpmbuild
++target_link_options(rpmbuild PRIVATE -static)
++target_link_libraries(rpmbuild PRIVATE dl pthread)
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -553,11 +553,3 @@
+ 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/rpm
+ )
+ 
+-export(TARGETS librpm librpmio librpmbuild librpmsign
+-	FILE rpm-targets.cmake
+-	NAMESPACE rpm::
+-)
+-install(EXPORT rpm-targets
+-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME}
+-	NAMESPACE rpm::
+-)
