@@ -1,0 +1,96 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+
+# ==============================
+# || Patch RPM source for     ||
+# || static linking            ||
+# ==============================
+
+# Patch internal libraries from SHARED to STATIC
+for cmakefile in \
+    "${RPM_SOURCE}/rpmio/CMakeLists.txt" \
+    "${RPM_SOURCE}/lib/CMakeLists.txt" \
+    "${RPM_SOURCE}/build/CMakeLists.txt" \
+    "${RPM_SOURCE}/sign/CMakeLists.txt"; do
+    if [ -f "${cmakefile}" ]; then
+        sed -i 's/add_library(\(lib[a-z]*\) SHARED)/add_library(\1 STATIC)/' "${cmakefile}"
+    fi
+done
+
+# Remove soversion properties (not applicable to static libs)
+for cmakefile in \
+    "${RPM_SOURCE}/rpmio/CMakeLists.txt" \
+    "${RPM_SOURCE}/lib/CMakeLists.txt" \
+    "${RPM_SOURCE}/build/CMakeLists.txt" \
+    "${RPM_SOURCE}/sign/CMakeLists.txt"; do
+    if [ -f "${cmakefile}" ]; then
+        sed -i '/set_target_properties.*PROPERTIES/{
+            N;N;N
+            /VERSION.*SOVERSION/d
+        }' "${cmakefile}"
+    fi
+done
+
+# Remove export/install-export lines
+sed -i '/^export(TARGETS/,/^)/d' "${RPM_SOURCE}/CMakeLists.txt"
+sed -i '/^install(EXPORT/,/^)/d' "${RPM_SOURCE}/CMakeLists.txt"
+
+# Add -static link flag for rpmbuild
+cat >> "${RPM_SOURCE}/tools/CMakeLists.txt" <<'PATCH'
+
+# Static link rpmbuild
+target_link_options(rpmbuild PRIVATE -static)
+target_link_libraries(rpmbuild PRIVATE dl pthread)
+PATCH
+
+# ==============================
+# || Configure and build RPM  ||
+# ==============================
+
+RPM_BUILD="/tmp/rpm-build"
+mkdir -p ${RPM_BUILD}
+
+cmake -S ${RPM_SOURCE} -B ${RPM_BUILD} \
+    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
+    -DCMAKE_LIBRARY_PATH="${PREFIX}/lib" \
+    -DCMAKE_PREFIX_PATH="${PREFIX}" \
+    -DENABLE_PYTHON=OFF \
+    -DENABLE_PLUGINS=OFF \
+    -DENABLE_TESTSUITE=OFF \
+    -DENABLE_NLS=ON \
+    -DENABLE_OPENMP=OFF \
+    -DENABLE_SQLITE=ON \
+    -DENABLE_NDB=ON \
+    -DWITH_CAP=OFF \
+    -DWITH_ACL=OFF \
+    -DWITH_SELINUX=OFF \
+    -DWITH_DBUS=OFF \
+    -DWITH_AUDIT=OFF \
+    -DWITH_FAPOLICYD=OFF \
+    -DWITH_SEQUOIA=OFF \
+    -DWITH_IMAEVM=OFF \
+    -DWITH_FSVERITY=OFF \
+    -DWITH_READLINE=OFF \
+    -DWITH_LIBDW=OFF \
+    -DWITH_LIBELF=OFF \
+    -DWITH_DOXYGEN=OFF \
+    -DWITH_OPENSSL=ON \
+    -DWITH_ICONV=OFF \
+    -DWITH_BZIP2=ON \
+    -DWITH_ZSTD=ON \
+    -DWITH_LIBLZMA=ON \
+    -DZLIB_LIBRARY="${PREFIX}/lib/libz.a" \
+    -DZLIB_INCLUDE_DIR="${PREFIX}/include" \
+    -DBZIP2_LIBRARY_RELEASE="${PREFIX}/lib/libbz2.a" \
+    -DBZIP2_INCLUDE_DIR="${PREFIX}/include" \
+    -DMAGIC_LIBRARY="${PREFIX}/lib/libmagic.a" \
+    -DLUA_LIBRARIES:FILEPATH="${PREFIX}/lib/liblua.a;m" \
+    -DLUA_INCLUDE_DIR:PATH="${PREFIX}/include"
+
+cmake --build ${RPM_BUILD} --target rpmbuild -j$(nproc)

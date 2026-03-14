@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euox pipefail
+
+# sudo is not installed by default in ubuntu:latest.
+apt update
+DEBIAN_FRONTEND=noninteractive apt install -y sudo
+
+# some build steps need to run as a user, but
+# we also want to make sure that the user can do anything as root.
+useradd -m -s /bin/bash builder
+usermod -aG sudo builder
+echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers

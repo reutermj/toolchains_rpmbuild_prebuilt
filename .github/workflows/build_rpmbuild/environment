@@ -1,0 +1,46 @@
+#!/bin/bash
+set -euox pipefail
+
+export BUILD_ARCH=$(uname -m)
+
+# ==============================
+# || Setup Source Directories ||
+# ==============================
+export ZLIB_SOURCE="/tmp/zlib-source"
+export BZIP2_SOURCE="/tmp/bzip2-source"
+export XZ_SOURCE="/tmp/xz-source"
+export ZSTD_SOURCE="/tmp/zstd-source"
+export OPENSSL_SOURCE="/tmp/openssl-source"
+export SQLITE_SOURCE="/tmp/sqlite-source"
+export FILE_SOURCE="/tmp/file-source"
+export POPT_SOURCE="/tmp/popt-source"
+export LUA_SOURCE="/tmp/lua-source"
+export LIBARCHIVE_SOURCE="/tmp/libarchive-source"
+export RPM_SOURCE="/tmp/rpm-source"
+
+mkdir -p ${ZLIB_SOURCE}
+mkdir -p ${BZIP2_SOURCE}
+mkdir -p ${XZ_SOURCE}
+mkdir -p ${ZSTD_SOURCE}
+mkdir -p ${OPENSSL_SOURCE}
+mkdir -p ${SQLITE_SOURCE}
+mkdir -p ${FILE_SOURCE}
+mkdir -p ${POPT_SOURCE}
+mkdir -p ${LUA_SOURCE}
+mkdir -p ${LIBARCHIVE_SOURCE}
+mkdir -p ${RPM_SOURCE}
+
+# ==============================
+# || Setup Output Directories ||
+# ==============================
+export PREFIX="/tmp/prefix"
+export ARTIFACTS_DIR="/tmp/artifacts"
+
+mkdir -p ${PREFIX}
+mkdir -p ${ARTIFACTS_DIR}
+
+# Ensures that ARTIFACTS_DIR is available to provenance attestation in
+# the github actions workflow.
+if [ -n "${GITHUB_ENV:-}" ]; then
+    echo "ARTIFACTS_DIR=${ARTIFACTS_DIR}" >> "${GITHUB_ENV}"
+fi

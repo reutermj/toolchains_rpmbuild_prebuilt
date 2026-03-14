@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euox pipefail
+
+# Install newer GitHub CLI for attestation support (requires v2.47.0+)
+# Ubuntu package version is too old, so install from GitHub releases
+# We can assume the actions runner has a good enough version of gh so we only need it in the dockerfile
+GH_VERSION="2.83.2"
+case $(uname -m) in
+    x86_64)  GH_ARCH="amd64" ;;
+    aarch64) GH_ARCH="arm64" ;;
+esac
+wget "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${GH_ARCH}.tar.gz"
+tar -xzf "gh_${GH_VERSION}_linux_${GH_ARCH}.tar.gz"
+sudo install "gh_${GH_VERSION}_linux_${GH_ARCH}/bin/gh" /usr/local/bin/gh

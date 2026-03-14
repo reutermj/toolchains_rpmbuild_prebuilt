@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+cd ${BZIP2_SOURCE}
+
+make -j$(nproc) -l \
+    CC=gcc \
+    CFLAGS="-O2 -fPIC -Wall" \
+    libbz2.a
+
+install -m 644 libbz2.a ${PREFIX}/lib/
+install -m 644 bzlib.h ${PREFIX}/include/

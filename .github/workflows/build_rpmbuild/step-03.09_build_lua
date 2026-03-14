@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+cd ${LUA_SOURCE}
+
+# Build Lua as a static library with PIC for embedding
+make -j$(nproc) -l \
+    PLAT=linux \
+    CC=gcc \
+    MYCFLAGS="-O2 -fPIC" \
+    linux
+
+make install INSTALL_TOP=${PREFIX}

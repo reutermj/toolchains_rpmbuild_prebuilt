@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+cd ${OPENSSL_SOURCE}
+
+./Configure \
+    --prefix=${PREFIX} \
+    --libdir=lib \
+    no-shared \
+    no-tests \
+    no-docs \
+    -fPIC
+
+make -j$(nproc) -l
+make install_sw

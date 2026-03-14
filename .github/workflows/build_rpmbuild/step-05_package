@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+BINARY="/tmp/rpm-build/tools/rpmbuild"
+
+if [[ ! -f "${BINARY}" ]]; then
+    echo "ERROR: ${BINARY} not found"
+    exit 1
+fi
+
+# Verify it's statically linked
+file "${BINARY}"
+ldd "${BINARY}" 2>&1 && echo "WARNING: binary has dynamic dependencies" || echo "OK: statically linked"
+
+DATE=$(date +%Y%m%d)
+
+# Maximum compression
+export XZ_OPT=-e9
+
+mkdir -p "${ARTIFACTS_DIR}"
+tar cJf "${ARTIFACTS_DIR}/rpmbuild-${BUILD_ARCH}-linux-${RPM_VERSION}-${DATE}.tar.xz" \
+    -C "$(dirname ${BINARY})" \
+    rpmbuild

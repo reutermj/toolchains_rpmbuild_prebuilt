@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+cd ${POPT_SOURCE}
+autoreconf -fi
+
+POPT_BUILD="/tmp/popt-build"
+mkdir -p ${POPT_BUILD}
+cd ${POPT_BUILD}
+
+env CFLAGS="-O2 -fPIC" \
+    ${POPT_SOURCE}/configure \
+        --prefix=${PREFIX} \
+        --disable-shared \
+        --enable-static
+
+make -j$(nproc) -l
+make install

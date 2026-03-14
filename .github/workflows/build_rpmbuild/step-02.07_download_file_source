@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+${UTILS_DIR}/download_tarball "file-${FILE_VERSION}.tar.xz" "${FILE_SOURCE}"

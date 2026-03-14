@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+gh release upload binaries \
+    ${ARTIFACTS_DIR}/*.tar.xz \
+    --clobber

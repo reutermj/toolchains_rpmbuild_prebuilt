@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+
+LIBARCHIVE_BUILD="/tmp/libarchive-build"
+mkdir -p ${LIBARCHIVE_BUILD}
+cd ${LIBARCHIVE_BUILD}
+
+cmake -S ${LIBARCHIVE_SOURCE} -B ${LIBARCHIVE_BUILD} \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
+    -DCMAKE_PREFIX_PATH=${PREFIX} \
+    -DENABLE_TEST=OFF \
+    -DENABLE_TAR=OFF \
+    -DENABLE_CPIO=OFF \
+    -DENABLE_CAT=OFF \
+    -DENABLE_UNZIP=OFF \
+    -DENABLE_OPENSSL=OFF \
+    -DBUILD_SHARED_LIBS=OFF
+
+cmake --build ${LIBARCHIVE_BUILD} -j$(nproc)
+cmake --install ${LIBARCHIVE_BUILD}

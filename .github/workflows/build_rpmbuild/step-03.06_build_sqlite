@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+SQLITE_BUILD="/tmp/sqlite-build"
+mkdir -p ${SQLITE_BUILD}
+cd ${SQLITE_BUILD}
+
+env CFLAGS="-O2 -fPIC -DSQLITE_ENABLE_COLUMN_METADATA" \
+    ${SQLITE_SOURCE}/configure \
+        --prefix=${PREFIX} \
+        --disable-shared \
+        --enable-static
+
+make -j$(nproc) -l
+make install

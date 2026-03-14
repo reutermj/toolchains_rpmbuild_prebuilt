@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+${UTILS_DIR}/download_tarball "lua-${LUA_VERSION}.tar.xz" "${LUA_SOURCE}"

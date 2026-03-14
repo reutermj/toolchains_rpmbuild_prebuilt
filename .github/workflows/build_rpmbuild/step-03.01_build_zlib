@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+ZLIB_BUILD="/tmp/zlib-build"
+mkdir -p ${ZLIB_BUILD}
+cd ${ZLIB_BUILD}
+
+env CFLAGS="-O2 -fPIC" \
+    ${ZLIB_SOURCE}/configure \
+        --prefix=${PREFIX} \
+        --static
+
+make -j$(nproc) -l
+make install

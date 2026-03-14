@@ -1,0 +1,28 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+XZ_BUILD="/tmp/xz-build"
+mkdir -p ${XZ_BUILD}
+cd ${XZ_BUILD}
+
+# xz from git needs autogen
+cd ${XZ_SOURCE}
+./autogen.sh --no-po4a
+cd ${XZ_BUILD}
+
+env CFLAGS="-O2 -fPIC" \
+    ${XZ_SOURCE}/configure \
+        --prefix=${PREFIX} \
+        --disable-shared \
+        --enable-static \
+        --disable-xz \
+        --disable-xzdec \
+        --disable-lzmadec \
+        --disable-lzmainfo \
+        --disable-scripts \
+        --disable-doc \
+        --disable-nls
+
+make -j$(nproc) -l
+make install

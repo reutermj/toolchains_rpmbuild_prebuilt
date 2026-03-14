@@ -1,0 +1,45 @@
+#!/bin/bash
+set -euox pipefail
+
+# Downloads, verifies, and extracts a tarball from the binaries release.
+#
+# The tarball_pattern is matched against release asset names. If multiple assets match
+# (e.g., built artifacts with date suffixes), the lexicographically last match is selected.
+# This gives "latest by date" behavior for the YYYYMMDD naming convention used by built artifacts.
+# For source tarballs with exact names, the pattern matches exactly one asset.
+#
+# Usage: download_tarball <tarball_pattern> <extract_dir>
+# Examples:
+#   download_tarball "rpm-6.0.1.tar.xz" /tmp/rpm-source
+#   download_tarball "rpmbuild-x86_64-linux-" /tmp/rpmbuild
+
+if [[ $# -ne 2 ]]; then
+    echo "Usage: download_tarball <tarball_pattern> <extract_dir>"
+    exit 1
+fi
+
+TARBALL_PATTERN="$1"
+EXTRACT_DIR="$2"
+
+TARBALL_NAME=$(gh release view binaries \
+    --repo reutermj/toolchains_rpmbuild_prebuilt \
+    --json assets -q ".assets[].name" \
+    | grep "^${TARBALL_PATTERN}" \
+    | sort | tail -1)
+
+if [[ -z "${TARBALL_NAME}" ]]; then
+    echo "Error: no asset found matching pattern '${TARBALL_PATTERN}'"
+    exit 1
+fi
+
+TARBALL_PATH="/tmp/${TARBALL_NAME}"
+
+gh release download binaries \
+    --repo reutermj/toolchains_rpmbuild_prebuilt \
+    --pattern "${TARBALL_NAME}" \
+    --output "${TARBALL_PATH}"
+
+gh attestation verify "${TARBALL_PATH}" --repo reutermj/toolchains_rpmbuild_prebuilt
+
+mkdir -p "${EXTRACT_DIR}"
+tar -xf "${TARBALL_PATH}" -C "${EXTRACT_DIR}"

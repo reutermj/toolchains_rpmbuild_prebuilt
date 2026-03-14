@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+cd ${FILE_SOURCE}
+autoreconf -fi
+
+FILE_BUILD="/tmp/file-build"
+mkdir -p ${FILE_BUILD}
+cd ${FILE_BUILD}
+
+env CFLAGS="-O2 -fPIC" \
+    ${FILE_SOURCE}/configure \
+        --prefix=${PREFIX} \
+        --disable-shared \
+        --enable-static
+
+make -j$(nproc) -l
+make install

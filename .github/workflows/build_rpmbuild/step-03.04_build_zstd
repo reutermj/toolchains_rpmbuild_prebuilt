@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+cd ${ZSTD_SOURCE}/lib
+
+make -j$(nproc) -l \
+    CC=gcc \
+    CFLAGS="-O2 -fPIC" \
+    libzstd.a
+
+install -m 644 libzstd.a ${PREFIX}/lib/
+install -m 644 zstd.h ${PREFIX}/include/
+install -m 644 zstd_errors.h ${PREFIX}/include/
+install -m 644 zdict.h ${PREFIX}/include/
+
+# Create pkg-config file
+mkdir -p ${PREFIX}/lib/pkgconfig
+ZSTD_MAJOR=$(grep '#define ZSTD_VERSION_MAJOR' zstd.h | awk '{print $3}')
+ZSTD_MINOR=$(grep '#define ZSTD_VERSION_MINOR' zstd.h | awk '{print $3}')
+ZSTD_PATCH=$(grep '#define ZSTD_VERSION_RELEASE' zstd.h | awk '{print $3}')
+ZSTD_VER="${ZSTD_MAJOR}.${ZSTD_MINOR}.${ZSTD_PATCH}"
+cat > ${PREFIX}/lib/pkgconfig/libzstd.pc <<EOF
+prefix=${PREFIX}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: libzstd
+Description: fast lossless compression algorithm library
+Version: ${ZSTD_VER}
+Libs: -L\${libdir} -lzstd
+Cflags: -I\${includedir}
+EOF

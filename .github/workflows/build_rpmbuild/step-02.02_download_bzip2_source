@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+${UTILS_DIR}/download_tarball "bzip2-${BZIP2_VERSION}.tar.xz" "${BZIP2_SOURCE}"
