@@ -242,11 +242,15 @@ If the build fails, fix the patches and retry. Common issues:
 - **C vs C++ differences**: Ensure patches target the correct file extension
   (`.c` vs `.cc`) and use the correct language idioms
 
-## 7. Add the version to build workflows
+## 7. Commit, push, and trigger builds
 
-The build workflows (`build_rpmbuild_x86_64.yml` and
-`build_rpmbuild_aarch64.yml`) use a `workflow_dispatch` input with a choice
-list. Add the new version:
+Push the build infrastructure changes **first** — patches, build script, and
+build workflow choices. Do NOT include `rpmbuild_repo.bzl` or test workflow
+matrix changes in this commit; those depend on the build artifacts existing
+and would cause test failures on push.
+
+Add the new version to the build workflows (`build_rpmbuild_x86_64.yml` and
+`build_rpmbuild_aarch64.yml`) choice list:
 
 ```yaml
 inputs:
@@ -261,24 +265,14 @@ inputs:
       - "<NEW_VERSION>"  # Add here
 ```
 
-## 8. Update `rpmbuild_repo.bzl`
-
-Add a version map entry for the new version. The key is major.minor, the value
-is a tuple of (latest patch version, build date):
-
-```python
-_VERSION_MAP = {
-    "6.0": ("6.0.1", "20260314"),
-    "4.20": ("4.20.1", "20260314"),
-    "4.19": ("4.19.1.1", "20260314"),
-    "<MAJOR.MINOR>": ("<VERSION>", "<YYYYMMDD>"),
-}
-```
-
-## 9. Commit, push, and trigger builds
+Commit and push just the build changes, then trigger builds:
 
 ```bash
-git add -A
+git add \
+    .github/workflows/build_rpmbuild/patches/<MAJOR.MINOR>/ \
+    .github/workflows/build_rpmbuild/step-04_build_rpm \
+    .github/workflows/build_rpmbuild_x86_64.yml \
+    .github/workflows/build_rpmbuild_aarch64.yml
 git commit -m "Add RPM <VERSION> support with patches"
 git push
 
@@ -287,7 +281,7 @@ gh workflow run "Build rpmbuild (x86_64)" --ref main -f rpm_version=<VERSION>
 gh workflow run "Build rpmbuild (aarch64)" --ref main -f rpm_version=<VERSION>
 ```
 
-## 10. Wait for builds and update sha256 hashes
+## 8. Wait for builds and get sha256 hashes
 
 Monitor the builds:
 
@@ -310,9 +304,20 @@ gh release download binaries \
 sha256sum /tmp/new-tarball/rpmbuild-*-linux-<VERSION>-*.tar.xz
 ```
 
-Add the sha256 entries to `rpmbuild_repo.bzl`:
+## 9. Update `rpmbuild_repo.bzl` and test workflows
+
+Now that the build artifacts exist, add the version map entry, sha256 hashes,
+and test workflow matrix entries. The key for `_VERSION_MAP` is major.minor,
+the value is a tuple of (latest patch version, build date):
 
 ```python
+_VERSION_MAP = {
+    "6.0": ("6.0.1", "20260314"),
+    "4.20": ("4.20.1", "20260314"),
+    "4.19": ("4.19.1.1", "20260314"),
+    "<MAJOR.MINOR>": ("<VERSION>", "<YYYYMMDD>"),
+}
+
 _TARBALL_TO_SHA256 = {
     # ... existing entries ...
     "rpmbuild-x86_64-linux-<VERSION>-<DATE>.tar.xz": "<SHA256>",
@@ -320,9 +325,18 @@ _TARBALL_TO_SHA256 = {
 }
 ```
 
-## 11. Verify with Bazel
+Add the new version to the test workflow matrices (`test_x86_64.yml` and
+`test_aarch64.yml`):
 
-Test the new version locally:
+```yaml
+strategy:
+  matrix:
+    rpm_version: ["6.0", "4.20", "<MAJOR.MINOR>"]
+```
+
+## 10. Verify with Bazel
+
+Test the new version locally before pushing:
 
 ```bash
 # In MODULE.bazel, temporarily change the version:
@@ -332,10 +346,13 @@ bazel clean --expunge
 bazel build //tests/rpm:hello-rpm
 ```
 
-## 12. Final commit
+## 11. Final commit
 
 ```bash
-git add private/rpmbuild_repo.bzl
+git add \
+    private/rpmbuild_repo.bzl \
+    .github/workflows/test_x86_64.yml \
+    .github/workflows/test_aarch64.yml
 git commit -m "Add RPM <VERSION> tarball sha256 hashes"
 git push
 ```

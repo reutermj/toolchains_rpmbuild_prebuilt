@@ -14,13 +14,15 @@ _TARBALL_TO_SHA256 = {
     "rpmbuild-aarch64-linux-6.0.1-20260314.tar.xz": "227a1de5a954f0af2d35ae25e9b7b35de395d7dba63191ac23368a023f0223bd",
     "rpmbuild-x86_64-linux-4.20.1-20260314.tar.xz": "7ce9e6cdabaae146938bdfde774fdca0380837c80ad0edaf0e7feee02108c41b",
     "rpmbuild-aarch64-linux-4.20.1-20260314.tar.xz": "9826fdc1e24509ba5c2ca4a02c2d797226959f8accba19d43cbbf5456d0fb498",
+    "rpmbuild-x86_64-linux-4.19.1.1-20260314.tar.xz": "9e58e003722307217ecd0bdc5c7d183aadb5d6302fa64e4e6fed5b228da12ad0",
+    "rpmbuild-aarch64-linux-4.19.1.1-20260314.tar.xz": "58dfeea006f0684e218ac30a4316c3febfc648e51a72f147d19c17bf53acb3e5",
 }
 
 # Maps major.minor version to the latest supported patch version and build date.
 _VERSION_MAP = {
     "6.0": ("6.0.1", "20260314"),
     "4.20": ("4.20.1", "20260314"),
-    "4.19": ("4.19.1.1", "PLACEHOLDER"),
+    "4.19": ("4.19.1.1", "20260314"),
 }
 
 def _prebuilt_rpmbuild_toolchain(rctx):
