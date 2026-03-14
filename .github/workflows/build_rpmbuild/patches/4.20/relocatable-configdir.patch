@@ -1,0 +1,29 @@
+--- a/rpmio/rpmfileutil.c
++++ b/rpmio/rpmfileutil.c
+@@ -484,7 +484,25 @@
+ static void setConfigDir(void)
+ {
+     char *rpmenv = getenv("RPM_CONFIGDIR");
+-    rpm_config_dir = rpmenv ? xstrdup(rpmenv) : RPM_CONFIGDIR;
++    if (rpmenv) {
++        rpm_config_dir = xstrdup(rpmenv);
++    } else {
++        char _exe[4096] = {};
++        ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
++        if (_len > 0) {
++            _exe[_len] = '\0';
++            /* strip "bin/rpmbuild" -> two path components */
++            char *_s = strrchr(_exe, '/');
++            if (_s) *_s = '\0';
++            _s = strrchr(_exe, '/');
++            if (_s) *_s = '\0';
++            char *_buf = NULL;
++            rasprintf(&_buf, "%s/lib/rpm", _exe);
++            rpm_config_dir = _buf;
++        } else {
++            rpm_config_dir = RPM_CONFIGDIR;
++        }
++    }
+ }
+ 
+ const char *rpmConfigDir(void)

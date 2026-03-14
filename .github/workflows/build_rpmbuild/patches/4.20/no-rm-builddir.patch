@@ -1,0 +1,14 @@
+--- a/build/build.c
++++ b/build/build.c
+@@ -322,10 +322,7 @@
+ 
+ static rpmRC doBuildDir(rpmSpec spec, int test, int inPlace, StringBuf *sbp)
+ {
+-    char *doDir = rpmExpand("test -d '", spec->buildDir, "' && ",
+-			   "%{_fixperms} '", spec->buildDir, "'\n",
+-			   "%{__rm} -rf '", spec->buildDir, "'\n",
+-			   "%{__mkdir_p} '", spec->buildDir, "'\n",
++    char *doDir = rpmExpand("%{__mkdir_p} '", spec->buildDir, "'\n",
+ 			   "%{__mkdir_p} '%{specpartsdir}'\n",
+ 			   NULL);
+ 

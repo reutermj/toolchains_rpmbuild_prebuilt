@@ -1,0 +1,19 @@
+--- a/build/parsePreamble.c
++++ b/build/parsePreamble.c
+@@ -1286,15 +1286,7 @@
+ 	}
+ 
+ 	if (!spec->buildDir) {
+-	    /* Using release here causes a buildid no-recompute test to fail */
+-	    char *bn = rpmExpand("%{NAME}-%{VERSION}-build", NULL);
+-	    /* Tilde and caret in paths are evil, convert to underscores */
+-	    for (char *t = bn; *t; t++) {
+-		if (*t == '^' || *t == '~')
+-		    *t = '_';
+-	    }
+-	    spec->buildDir = rpmExpand("%{_top_builddir}/", bn, NULL);
+-	    free(bn);
++	    spec->buildDir = rpmExpand("%{_top_builddir}", NULL);
+ 
+ 	    /* Override toplevel _builddir for backwards compatibility */
+ 	    rpmPushMacroFlags(spec->macros, "_builddir", NULL, spec->buildDir,

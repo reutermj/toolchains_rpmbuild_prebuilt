@@ -2,6 +2,14 @@ name: Build rpmbuild (x86_64)
 
 on:
   workflow_dispatch:
+    inputs:
+      rpm_version:
+        description: "RPM version to build"
+        required: true
+        type: choice
+        options:
+          - "6.0.1"
+          - "4.20.1"
 
 permissions:
   # Required for uploading GitHub releases
@@ -23,7 +31,7 @@ env:
   POPT_VERSION: "1.19"
   LUA_VERSION: "5.4.7"
   LIBARCHIVE_VERSION: "3.8.6"
-  RPM_VERSION: "6.0.1"
+  RPM_VERSION: ${{ inputs.rpm_version }}
 
 jobs:
   build:

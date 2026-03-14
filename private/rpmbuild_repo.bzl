@@ -16,6 +16,7 @@ _TARBALL_TO_SHA256 = {
 
 _RELEASE_TO_DATE = {
     "6.0.1": "20260314",
+    "4.20.1": "20260314",
 }
 
 def _rpmbuild_repo(rctx):
