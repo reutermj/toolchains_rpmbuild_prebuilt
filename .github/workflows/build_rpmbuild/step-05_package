@@ -13,6 +13,35 @@ fi
 file "${BINARY}"
 ldd "${BINARY}" 2>&1 && echo "WARNING: binary has dynamic dependencies" || echo "OK: statically linked"
 
+# Verify relocatability: the binary should resolve config relative to itself
+# Stage as: <root>/bin/rpmbuild, <root>/lib/rpm/*, <root>/share/misc/magic.mgc
+STAGING="/tmp/staging"
+rm -rf "${STAGING}"
+mkdir -p "${STAGING}/bin"
+mkdir -p "${STAGING}/lib/rpm"
+mkdir -p "${STAGING}/share/misc"
+
+cp "${BINARY}" "${STAGING}/bin/rpmbuild"
+cp /tmp/rpm-build/rpmrc "${STAGING}/lib/rpm/rpmrc"
+cp /tmp/rpm-build/macros "${STAGING}/lib/rpm/macros"
+cp /tmp/rpm-build/platform "${STAGING}/lib/rpm/platform"
+
+if [ -f "${PREFIX}/share/misc/magic.mgc" ]; then
+    cp "${PREFIX}/share/misc/magic.mgc" "${STAGING}/share/misc/magic.mgc"
+fi
+
+# Include fileattrs if present (RPM 6 requires at least one .attr file)
+if [ -d "/tmp/rpm-build/fileattrs" ]; then
+    mkdir -p "${STAGING}/lib/rpm/fileattrs"
+    cp /tmp/rpm-build/fileattrs/*.attr "${STAGING}/lib/rpm/fileattrs/" 2>/dev/null || true
+fi
+
+# Include licenses for all statically linked dependencies
+cp -r /tmp/licenses "${STAGING}/licenses"
+
+# Quick sanity check: rpmbuild should find its config relative to itself
+"${STAGING}/bin/rpmbuild" --version
+
 DATE=$(date +%Y%m%d)
 
 # Maximum compression
@@ -20,5 +49,5 @@ export XZ_OPT=-e9
 
 mkdir -p "${ARTIFACTS_DIR}"
 tar cJf "${ARTIFACTS_DIR}/rpmbuild-${BUILD_ARCH}-linux-${RPM_VERSION}-${DATE}.tar.xz" \
-    -C "$(dirname ${BINARY})" \
-    rpmbuild
+    -C "${STAGING}" \
+    .

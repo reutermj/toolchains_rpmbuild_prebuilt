@@ -1,0 +1,41 @@
+diff --git a/rpmio/rpmfileutil.cc b/rpmio/rpmfileutil.cc
+index 5e1f9ed..4e1918a 100644
+--- a/rpmio/rpmfileutil.cc
++++ b/rpmio/rpmfileutil.cc
+@@ -1,5 +1,6 @@
+ #include "system.h"
+ 
++#include <unistd.h>
+ #include <filesystem>
+ #include <string>
+ #include <vector>
+@@ -431,12 +432,27 @@ int rpmMkdirs(const char *root, const char *pathstr)
+     return rc;
+ }
+ 
+-/* One-shot initialization of our global config directory */
++/* One-shot initialization of our global config directory - patched for relocatability */
+ struct rpmConfDir {
+     std::string path;
+     rpmConfDir() {
+ 	char *rpmenv = getenv("RPM_CONFIGDIR");
+-	path = rpmenv ? rpmenv : RPM_CONFIGDIR;
++	if (rpmenv) {
++	    path = rpmenv;
++	} else {
++	    char _exe[4096] = {};
++	    ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
++	    if (_len > 0) {
++		_exe[_len] = '\0';
++		char *_s = strrchr(_exe, '/');
++		if (_s) *_s = '\0';
++		_s = strrchr(_exe, '/');
++		if (_s) *_s = '\0';
++		path = std::string(_exe) + "/lib/rpm";
++	    } else {
++		path = RPM_CONFIGDIR;
++	    }
++	}
+     };
+ };
+ 

@@ -47,6 +47,23 @@ target_link_libraries(rpmbuild PRIVATE dl pthread)
 PATCH
 
 # ==============================
+# || Apply source patches      ||
+# ==============================
+
+RPM_MAJOR_MINOR="${RPM_VERSION%.*}"
+PATCHES_DIR="${SCRIPTS_DIR}/patches/${RPM_MAJOR_MINOR}"
+
+if [[ ! -d "${PATCHES_DIR}" ]]; then
+    echo "ERROR: No patches found for RPM ${RPM_MAJOR_MINOR} at ${PATCHES_DIR}"
+    exit 1
+fi
+
+for patch_file in "${PATCHES_DIR}"/*.patch; do
+    echo "Applying $(basename "${patch_file}")..."
+    patch -d "${RPM_SOURCE}" -p1 < "${patch_file}"
+done
+
+# ==============================
 # || Configure and build RPM  ||
 # ==============================
 

@@ -127,6 +127,9 @@ jobs:
       - name: Build rpm
         run: $SCRIPTS_DIR/step-04_build_rpm
 
+      - name: Collect licenses
+        run: $SCRIPTS_DIR/step-04.1_collect_licenses
+
       - name: Package
         run: $SCRIPTS_DIR/step-05_package
 

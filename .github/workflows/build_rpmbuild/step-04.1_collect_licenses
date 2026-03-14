@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+LICENSES_DIR="/tmp/licenses"
+mkdir -p "${LICENSES_DIR}"
+
+# RPM - GPL-2.0-or-later / LGPL-2.0-or-later
+cp "${RPM_SOURCE}/COPYING" "${LICENSES_DIR}/RPM-COPYING"
+
+# zlib - Zlib license
+cp "${ZLIB_SOURCE}/LICENSE" "${LICENSES_DIR}/zlib-LICENSE"
+
+# bzip2 - bzip2-1.0.6 (BSD-like)
+cp "${BZIP2_SOURCE}/LICENSE" "${LICENSES_DIR}/bzip2-LICENSE"
+
+# XZ Utils / liblzma - 0BSD (liblzma), plus GPL/LGPL for other components
+cp "${XZ_SOURCE}/COPYING" "${LICENSES_DIR}/xz-COPYING"
+cp "${XZ_SOURCE}/COPYING.0BSD" "${LICENSES_DIR}/xz-COPYING.0BSD"
+cp "${XZ_SOURCE}/COPYING.GPLv2" "${LICENSES_DIR}/xz-COPYING.GPLv2"
+cp "${XZ_SOURCE}/COPYING.LGPLv2.1" "${LICENSES_DIR}/xz-COPYING.LGPLv2.1"
+
+# Zstandard - BSD-3-Clause
+cp "${ZSTD_SOURCE}/LICENSE" "${LICENSES_DIR}/zstd-LICENSE"
+
+# OpenSSL - Apache-2.0
+cp "${OPENSSL_SOURCE}/LICENSE.txt" "${LICENSES_DIR}/openssl-LICENSE.txt"
+
+# SQLite - Public Domain (blessing embedded in source headers)
+cat > "${LICENSES_DIR}/sqlite-LICENSE" <<'EOF'
+The author disclaims copyright to this source code.  In place of
+a legal notice, here is a blessing:
+
+    May you do good and not evil.
+    May you find forgiveness for yourself and forgive others.
+    May you share freely, never taking more than you give.
+EOF
+
+# file / libmagic - BSD-2-Clause
+cp "${FILE_SOURCE}/COPYING" "${LICENSES_DIR}/libmagic-COPYING"
+
+# popt - MIT
+cp "${POPT_SOURCE}/COPYING" "${LICENSES_DIR}/popt-COPYING"
+
+# Lua - MIT (license is in lua.h footer, no separate LICENSE file)
+# Extract the copyright block between the markers in lua.h
+sed -n '/^\/\*\*\*\*\*/,/\*\*\*\*\*\//p' "${LUA_SOURCE}/src/lua.h" \
+    | tail -n +2 | head -n -1 \
+    | sed 's/^\** *//' > "${LICENSES_DIR}/lua-LICENSE"
+
+# libarchive - BSD-2-Clause
+cp "${LIBARCHIVE_SOURCE}/COPYING" "${LICENSES_DIR}/libarchive-COPYING"
+
+# glibc - LGPL-2.1-or-later (from Debian/Ubuntu package)
+cp /usr/share/doc/libc6/copyright "${LICENSES_DIR}/glibc-copyright"
+
+echo "=== Collected licenses ==="
+ls -1 "${LICENSES_DIR}/"

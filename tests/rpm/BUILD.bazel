@@ -1,0 +1,19 @@
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
+load("@rules_pkg//pkg:rpm.bzl", "pkg_rpm")
+
+pkg_files(
+    name = "hello_files",
+    srcs = ["hello.txt"],
+    prefix = "/usr/share/hello",
+)
+
+pkg_rpm(
+    name = "hello-rpm",
+    srcs = [":hello_files"],
+    architecture = "x86_64",
+    description = "A hello world RPM for testing the rpmbuild toolchain.",
+    license = "MIT",
+    release = "1",
+    summary = "Hello World RPM",
+    version = "1.0.0",
+)

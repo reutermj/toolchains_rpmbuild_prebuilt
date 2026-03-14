@@ -1,0 +1,14 @@
+diff --git a/build/build.cc b/build/build.cc
+index 8595bf3..ebe6644 100644
+--- a/build/build.cc
++++ b/build/build.cc
+@@ -326,9 +326,6 @@ static int doCheckBuildRequires(rpmts ts, rpmSpec spec, int test)
+ static rpmRC doBuildDir(rpmSpec spec, int test, int inPlace, StringBuf *sbp)
+ {
+     auto [ ign, doDir ] = macros().expand({
+-			       "test -d '", spec->buildDir, "' && ",
+-			       "%{_fixperms} '", spec->buildDir, "'\n",
+-			       "%{__rm} -rf '", spec->buildDir, "'\n",
+ 			       "%{__mkdir_p} '", spec->buildDir, "'\n",
+ 			       "%{__mkdir_p} '%{specpartsdir}'\n",
+ 			   });

@@ -110,7 +110,11 @@ RUN $SCRIPTS_DIR/step-03.10_build_libarchive
 # || Build RPM        ||
 # ======================
 COPY .github/workflows/build_rpmbuild/step-04_build_rpm $SCRIPTS_DIR/
+COPY .github/workflows/build_rpmbuild/patches $SCRIPTS_DIR/patches
 RUN $SCRIPTS_DIR/step-04_build_rpm
+
+COPY .github/workflows/build_rpmbuild/step-04.1_collect_licenses $SCRIPTS_DIR/
+RUN $SCRIPTS_DIR/step-04.1_collect_licenses
 
 COPY .github/workflows/build_rpmbuild/step-05_package $SCRIPTS_DIR/
 RUN $SCRIPTS_DIR/step-05_package

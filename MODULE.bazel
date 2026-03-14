@@ -6,8 +6,16 @@ module(name = "toolchains_rpmbuild_prebuilt")
 # || Dependencies ||
 # ==================
 bazel_dep(name = "rules_pkg", version = "1.2.0")
+bazel_dep(name = "platforms", version = "1.0.0")
 
 # ======================
 # || Dev Dependencies ||
 # ======================
 bazel_dep(name = "buildifier_prebuilt", version = "8.5.1", dev_dependency = True)
+
+# ================
+# || Toolchains ||
+# ================
+rpmbuild = use_repo_rule("//private:rpmbuild_repo.bzl", "rpmbuild_repo")
+rpmbuild(name = "rpmbuild", dev_dependency = True)
+register_toolchains("@rpmbuild//:rpmbuild_toolchain", dev_dependency = True)
