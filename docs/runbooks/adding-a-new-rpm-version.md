@@ -334,19 +334,24 @@ strategy:
     rpm_version: ["6.0", "4.20", "<MAJOR.MINOR>"]
 ```
 
-## 10. Verify with Bazel
+## 10. Verify locally with Bazel
 
-Test the new version locally before pushing:
+**Do this before pushing.** Run the Bazel test locally to confirm the new
+version downloads, extracts, and builds an RPM end-to-end:
 
 ```bash
-# In MODULE.bazel, temporarily change the version:
-# prebuilt_rpmbuild_toolchain(name = "rpmbuild", version = "<MAJOR.MINOR>", dev_dependency = True)
-
 bazel clean --expunge
-bazel build //tests/rpm:hello-rpm
+bazel build //tests/rpm:hello-rpm --repo_env=rpmbuild_version=<MAJOR.MINOR>
 ```
 
+If the default version in `MODULE.bazel` is different, the `--repo_env` flag
+overrides it without requiring a file change. A successful build produces an
+`.rpm` file and confirms the sha256 hash, tarball layout, and rpmbuild binary
+all work correctly.
+
 ## 11. Final commit
+
+Only push once step 10 passes:
 
 ```bash
 git add \
