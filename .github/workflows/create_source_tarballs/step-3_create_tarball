@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+pushd "${SOURCE_DIR}"
+XZ_OPT=-e9 tar -cJf "${ARTIFACTS_DIR}/${COMPONENT}-${VERSION}.tar.xz" .
+popd

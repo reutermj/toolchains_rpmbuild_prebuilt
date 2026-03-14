@@ -1,0 +1,68 @@
+name: Create Source Tarballs
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Component to download'
+        required: true
+        type: choice
+        options:
+          - rpm
+          - popt
+          - libarchive
+          - lua
+          - zlib
+          - xz
+          - zstd
+          - openssl
+          - file
+          - sqlite
+          - bzip2
+      version:
+        description: 'Version to download (e.g., 4.20.1 for rpm, 5.3.6 for lua)'
+        required: true
+        type: string
+
+permissions:
+  # Required for uploading GitHub releases
+  contents: write
+  # Required for build provenance attestation
+  id-token: write
+  attestations: write
+
+env:
+  SCRIPTS_DIR: ${{ github.workspace }}/.github/workflows/create_source_tarballs
+  COMPONENT: ${{ github.event.inputs.component }}
+  VERSION: ${{ github.event.inputs.version }}
+
+jobs:
+  create-source-tarballs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Install dependencies
+        run: $SCRIPTS_DIR/step-1_install_dependencies
+
+      - name: Set up environment
+        run: $SCRIPTS_DIR/environment
+
+      - name: Download source
+        run: $SCRIPTS_DIR/step-2_download_source
+
+      - name: Create source tarball
+        run: $SCRIPTS_DIR/step-3_create_tarball
+
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v4.1.0
+        with:
+          subject-path: |
+            ${{ env.ARTIFACTS_DIR }}/*.tar.xz
+
+      - name: Upload to GitHub Releases
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: $SCRIPTS_DIR/step-4_upload_release

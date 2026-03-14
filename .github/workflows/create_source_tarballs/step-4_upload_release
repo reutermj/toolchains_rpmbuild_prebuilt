@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+    echo "GITHUB_TOKEN is not set, exiting"
+    exit 0
+fi
+
+gh release upload binaries \
+    ${ARTIFACTS_DIR}/*.tar.xz \
+    --clobber

@@ -1,0 +1,103 @@
+#!/bin/bash
+set -euox pipefail
+source ${SCRIPTS_DIR}/environment
+
+case "${COMPONENT}" in
+    rpm)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "rpm-${VERSION}-release" \
+                https://github.com/rpm-software-management/rpm.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    popt)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "popt-${VERSION}-release" \
+                https://github.com/rpm-software-management/popt.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    libarchive)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "v${VERSION}" \
+                https://github.com/libarchive/libarchive.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    lua)
+        # Lua uses tarball downloads from official site
+        TARBALL="/tmp/lua-${VERSION}.tar.gz"
+        retry_with_backoff "${TARBALL}" \
+            wget -O "${TARBALL}" "https://www.lua.org/ftp/lua-${VERSION}.tar.gz"
+        tar xf "${TARBALL}" -C "${SOURCE_DIR}" --strip-components=1
+        rm "${TARBALL}"
+        ;;
+
+    zlib)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "v${VERSION}" \
+                https://github.com/madler/zlib.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    xz)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "v${VERSION}" \
+                https://github.com/tukaani-project/xz.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    zstd)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "v${VERSION}" \
+                https://github.com/facebook/zstd.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    openssl)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "openssl-${VERSION}" \
+                https://github.com/openssl/openssl.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    file)
+        # file/libmagic - uses FILE<major>_<minor> tag format
+        VERSION_UNDERSCORES="${VERSION//./_}"
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "FILE${VERSION_UNDERSCORES}" \
+                https://github.com/file/file.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    sqlite)
+        # SQLite uses year-based versioning with a tarball download
+        TARBALL="/tmp/sqlite-autoconf-${VERSION}.tar.gz"
+        retry_with_backoff "${TARBALL}" \
+            wget -O "${TARBALL}" "https://www.sqlite.org/2025/sqlite-autoconf-${VERSION}.tar.gz"
+        tar xf "${TARBALL}" -C "${SOURCE_DIR}" --strip-components=1
+        rm "${TARBALL}"
+        ;;
+
+    bzip2)
+        retry_with_backoff "${SOURCE_DIR}" \
+            git clone --depth 1 \
+                --branch "bzip2-${VERSION}" \
+                https://gitlab.com/bzip2/bzip2.git "${SOURCE_DIR}"
+        rm -rf "${SOURCE_DIR}/.git"
+        ;;
+
+    *)
+        echo "ERROR: Unknown component '${COMPONENT}'"
+        echo "Valid components: rpm, popt, libarchive, lua, zlib, xz, zstd, openssl, file, sqlite, bzip2"
+        exit 1
+        ;;
+esac
