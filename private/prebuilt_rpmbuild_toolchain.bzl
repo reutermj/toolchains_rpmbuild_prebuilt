@@ -74,15 +74,24 @@ def _prebuilt_rpmbuild_toolchain(rctx):
     # Provide a minimal one so file processing doesn't fail.
     rctx.file("lib/rpm/fileattrs/none.attr", "")
 
-    rctx.template(
+    rctx.file(
         "BUILD.bazel",
-        Label("//private:BUILD.bazel.tpl"),
-        substitutions = {
-            "{rpmbuild_path}": rpmbuild_path,
-            "{version}": patch_version,
-            "{cpu}": arch,
-            "{name}": rctx.original_name,
-        },
+        """
+load("@toolchains_rpmbuild_prebuilt//private:declare_toolchain.bzl", "declare_rpmbuild_toolchain")
+
+declare_rpmbuild_toolchain(
+    name = "{name}",
+    rpmbuild_path = "{rpmbuild_path}",
+    version = "{version}",
+    cpu = "{cpu}",
+    visibility = ["//visibility:public"],
+)
+""".lstrip().format(
+            name = rctx.original_name,
+            rpmbuild_path = rpmbuild_path,
+            version = patch_version,
+            cpu = arch,
+        ),
     )
 
 prebuilt_rpmbuild_toolchain = repository_rule(
