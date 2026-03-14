@@ -26,9 +26,17 @@ _VERSION_MAP = {
 }
 
 def _prebuilt_rpmbuild_toolchain(rctx):
-    arch = _ARCH_MAP.get(rctx.os.arch, None)
-    if arch == None:
-        fail("Unsupported host architecture: {}".format(rctx.os.arch))
+    if rctx.attr.arch:
+        arch = _ARCH_MAP.get(rctx.attr.arch, None)
+        if arch == None:
+            fail("Unsupported architecture: {}. Supported: {}".format(
+                rctx.attr.arch,
+                ", ".join(_ARCH_MAP.keys()),
+            ))
+    else:
+        arch = _ARCH_MAP.get(rctx.os.arch, None)
+        if arch == None:
+            fail("Unsupported host architecture: {}".format(rctx.os.arch))
 
     # Allow overriding version via --repo_env={name}_version=<major.minor>
     env_var = "{}_version".format(rctx.original_name)
@@ -80,6 +88,9 @@ def _prebuilt_rpmbuild_toolchain(rctx):
 prebuilt_rpmbuild_toolchain = repository_rule(
     implementation = _prebuilt_rpmbuild_toolchain,
     attrs = {
+        "arch": attr.string(
+            doc = "Target CPU architecture (e.g. \"x86_64\", \"aarch64\"). Defaults to the host architecture if not specified. Set this when the remote execution platform differs from the host.",
+        ),
         "version": attr.string(
             default = "6.0",
             doc = "RPM major.minor version to download (e.g. \"6.0\", \"4.20\"). The latest patch release is used automatically. Can be overridden with --repo_env={name}_version=<major.minor>.",
