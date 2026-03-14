@@ -8,9 +8,9 @@ version to the prebuilt rpmbuild toolchain.
 - Write access to this repository
 - `gh` CLI authenticated with permissions to trigger workflows and upload
   release assets
-- The RPM version you want to add (e.g. `4.20.1`, `6.0.1`)
+- The RPM version you want to add (e.g. `4.20.1`, `4.19.1.1`, `6.0.1`)
 
-## 1. Check for an existing source tarball
+## 1. Create the source tarball
 
 The build workflows download RPM source from the `binaries` GitHub release.
 Check if the source tarball already exists:
@@ -19,20 +19,19 @@ Check if the source tarball already exists:
 gh release view binaries --json assets -q '.assets[].name' | grep "rpm-"
 ```
 
-If the tarball for your version is missing, download it from the upstream RPM
-project and upload it:
+If the tarball for your version is missing, trigger the source tarball creation
+workflow to download from upstream, repackage, attest, and upload it:
 
 ```bash
-# Download from upstream (check the release page for the correct format)
-wget https://github.com/rpm-software-management/rpm/releases/download/rpm-<VERSION>-release/rpm-<VERSION>.tar.bz2
+gh workflow run "Create Source Tarballs" --ref main \
+    -f component=rpm -f version=<VERSION>
+```
 
-# The tarball must extract without a subdirectory prefix (files at ./)
-# If the upstream tarball has a prefix like rpm-<VERSION>/, repackage it:
-mkdir repack && tar xjf rpm-<VERSION>.tar.bz2 -C repack
-cd repack/rpm-<VERSION> && tar cJf /tmp/rpm-<VERSION>.tar.xz .
+Wait for the workflow to complete, then verify the tarball was uploaded:
 
-# Upload to the binaries release
-gh release upload binaries /tmp/rpm-<VERSION>.tar.xz
+```bash
+gh run list --workflow="Create Source Tarballs" --limit 2
+gh release view binaries --json assets -q '.assets[].name' | grep "rpm-<VERSION>"
 ```
 
 ## 2. Review existing patches
@@ -42,7 +41,16 @@ closest existing version to understand what issues each patch fixes:
 
 ```
 .github/workflows/build_rpmbuild/patches/
+├── 4.19/
+│   ├── relocatable-configdir.md # Makes RPM_CONFIGDIR resolve via /proc/self/exe
+│   ├── relocatable-configdir.patch
+│   ├── relocatable-sysconfdir.md # Makes SYSCONFDIR resolve via /proc/self/exe
+│   ├── relocatable-sysconfdir.patch
+│   ├── static-linking.md        # Switches libraries to static, links rpmbuild statically
+│   └── static-linking.patch
 ├── 4.20/
+│   ├── fix-compiler-flag-check.md  # Fixes CMake cache bug in compiler flag detection
+│   ├── fix-compiler-flag-check.patch
 │   ├── no-buildsubdir.md        # Removes per-package build subdirectory
 │   ├── no-buildsubdir.patch
 │   ├── no-rm-builddir.md        # Prevents rm -rf of build directory
@@ -66,12 +74,14 @@ closest existing version to understand what issues each patch fixes:
 | `relocatable-configdir` | `RPM_CONFIGDIR` is a compile-time absolute path (e.g. `/tmp/prefix/lib/rpm`). A prebuilt binary extracted to a different location can't find its config files. The patch resolves the path relative to the binary via `/proc/self/exe`. | All versions |
 | `relocatable-sysconfdir` | `SYSCONFDIR` is a compile-time string literal used in C string concatenation (e.g. `SYSCONFDIR "/rpmrc"`). Same relocatability issue as configdir, but requires replacing each usage site individually because `#define`ing SYSCONFDIR to a function breaks string literal concatenation. | All versions |
 | `static-linking` | Produces a self-contained static binary for remote execution environments. Changes `SHARED` to `STATIC` in CMakeLists.txt, removes soversion properties, removes export targets, adds `-static` link flag. | All versions |
+| `fix-compiler-flag-check` | CMake reuses a cached variable name when testing multiple compiler flags, causing untested flags (e.g. `-fhardened`) to be added. The patch uses unique variable names per flag. | RPM 4.20.0 |
 
 ### Determining which patches apply
 
-- **RPM < 4.20**: `no-buildsubdir` and `no-rm-builddir` are NOT needed (the
-  buildsubdir behavior didn't exist yet)
-- **RPM >= 4.20**: All 5 patches are needed
+- **RPM < 4.20**: `no-buildsubdir`, `no-rm-builddir`, and
+  `fix-compiler-flag-check` are NOT needed
+- **RPM >= 4.20**: All patches are needed (including `fix-compiler-flag-check`
+  for the `-fhardened` flag issue)
 - **All versions**: `relocatable-configdir`, `relocatable-sysconfdir`, and
   `static-linking` are always needed for prebuilt distribution
 
@@ -161,10 +171,13 @@ existing docs as templates. Each doc should include:
 ### Finding the commit hash for permalink URLs
 
 ```bash
-# For release tags, use the tagged commit:
-# RPM 4.20.1: c8dc5ea575a2e9c1488036d12f4b75f6a5a49120
-# RPM 6.0.1:  58a917a6c5e24e9e8a01976c17d2eee06249b9b6
-# RPM 4.19.1: 98b301ebb44fb5cabb56fc24bc3aaa437c47c038
+# Look up the tagged commit:
+git ls-remote https://github.com/rpm-software-management/rpm.git refs/tags/rpm-<VERSION>-release
+
+# Known commits:
+# RPM 4.19.1.1: bc2f9b7e797e8f519872ad154bd7a32ee8f411ad
+# RPM 4.20.1:   c8dc5ea575a2e9c1488036d12f4b75f6a5a49120
+# RPM 6.0.1:    58a917a6c5e24e9e8a01976c17d2eee06249b9b6
 
 # URL format:
 # https://github.com/rpm-software-management/rpm/blob/<COMMIT>/<file>#L<line>
@@ -180,14 +193,31 @@ grep "^option(" /tmp/rpm-<VERSION>-source/CMakeLists.txt
 ```
 
 Verify that all `-D` flags used in `step-04_build_rpm` exist in the new
-version. If the new version adds or removes options, the build script may need
-version-conditional logic.
+version. The build script has a `case` statement on `RPM_MAJOR_MINOR` that
+sets version-specific CMake flags. Key differences between versions:
+
+| Flag | RPM < 4.20 | RPM >= 4.20 |
+|------|-----------|-------------|
+| `WITH_INTERNAL_OPENPGP` | Use `ON` for OpenSSL-based crypto | Removed (use `WITH_SEQUOIA` instead) |
+| `WITH_SEQUOIA` | Does not exist | Use `OFF` (we use OpenSSL) |
+| `WITH_ARCHIVE` | Exists (default ON), set `OFF` | Removed |
+| `WITH_ICONV` | Does not exist as option | Use `OFF` |
+| `WITH_LIBDW` | Detected automatically | Use `OFF` |
+| `WITH_LIBELF` | Detected automatically | Use `OFF` |
+| `WITH_DOXYGEN` | Detected automatically | Use `OFF` |
+
+If the new version changes which options exist, add a new case to the
+`VERSION_FLAGS` block in `step-04_build_rpm`.
 
 ## 6. Test the build locally with Docker
 
-Before pushing to CI, verify the full build works locally using the Dockerfile.
-This catches issues like missing patches, compiler flag incompatibilities, or
-CMake configure errors without burning CI minutes:
+**Important:** The source tarball from step 1 must be available on the
+`binaries` release before running the Docker build, since the Dockerfile
+downloads it.
+
+Verify the full build works locally using the Dockerfile. This catches issues
+like missing patches, compiler flag incompatibilities, or CMake configure
+errors without burning CI minutes:
 
 ```bash
 docker build \
@@ -199,14 +229,16 @@ docker build \
 
 The Dockerfile runs the complete pipeline: install dependencies, download all
 sources, build all static libraries, apply patches, build RPM, collect licenses,
-and package the tarball.
+and package the tarball. A successful build means the patches apply cleanly,
+CMake configures correctly, and the resulting binary is statically linked and
+relocatable.
 
 If the build fails, fix the patches and retry. Common issues:
 
 - **Compiler flag errors** (e.g. `-fhardened`): May need a patch to fix CMake
   flag detection logic (see `fix-compiler-flag-check` in the 4.20 patches)
 - **Missing CMake options**: The new RPM version may not have all the `-D` flags
-  used in `step-04_build_rpm`
+  used in `step-04_build_rpm` — add a case to the `VERSION_FLAGS` block
 - **C vs C++ differences**: Ensure patches target the correct file extension
   (`.c` vs `.cc`) and use the correct language idioms
 
@@ -225,6 +257,7 @@ inputs:
     options:
       - "6.0.1"
       - "4.20.1"
+      - "4.19.1.1"
       - "<NEW_VERSION>"  # Add here
 ```
 
@@ -237,6 +270,7 @@ is a tuple of (latest patch version, build date):
 _VERSION_MAP = {
     "6.0": ("6.0.1", "20260314"),
     "4.20": ("4.20.1", "20260314"),
+    "4.19": ("4.19.1.1", "20260314"),
     "<MAJOR.MINOR>": ("<VERSION>", "<YYYYMMDD>"),
 }
 ```

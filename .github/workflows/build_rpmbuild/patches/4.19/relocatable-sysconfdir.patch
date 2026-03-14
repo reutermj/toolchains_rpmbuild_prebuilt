@@ -1,0 +1,63 @@
+--- a/lib/rpmrc.c
++++ b/lib/rpmrc.c
+@@ -40,6 +40,29 @@
+ 
+ #include "debug.h"
+ 
++static const char *_relocSysconfdir(const char *suffix) {
++    static char *_prefix = NULL;
++    static char _buf[8192];
++    if (!_prefix) {
++        char _exe[4096] = {};
++        ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
++        if (_len > 0) {
++            _exe[_len] = '\0';
++            char *_s = strrchr(_exe, '/');
++            if (_s) *_s = '\0';
++            _s = strrchr(_exe, '/');
++            if (_s) *_s = '\0';
++            strcat(_exe, "/etc");
++            _prefix = strdup(_exe);
++        } else {
++            _prefix = SYSCONFDIR;
++        }
++    }
++    snprintf(_buf, sizeof(_buf), "%s%s", _prefix, suffix ? suffix : "");
++    return _buf;
++}
++
++
+ static const char * defrcfiles = NULL;
+ const char * macrofiles = NULL;
+ 
+@@ -459,7 +482,7 @@
+     if (!defrcfiles) {
+ 	defrcfiles = rstrscat(NULL, confdir, "/rpmrc", ":",
+ 				confdir, "/" RPM_VENDOR "/rpmrc", ":",
+-				SYSCONFDIR "/rpmrc", ":",
++				_relocSysconfdir("/rpmrc"), ":",
+ 			  	"~/.rpmrc", NULL);
+     }
+ 
+@@ -470,9 +493,9 @@
+ 				confdir, "/platform/%{_target}/macros", ":",
+ 				confdir, "/fileattrs/*.attr", ":",
+   				confdir, "/" RPM_VENDOR "/macros", ":",
+-				SYSCONFDIR "/rpm/macros.*", ":",
+-				SYSCONFDIR "/rpm/macros", ":",
+-				SYSCONFDIR "/rpm/%{_target}/macros", ":",
++				_relocSysconfdir("/rpm/macros.*"), ":",
++				_relocSysconfdir("/rpm/macros"), ":",
++				_relocSysconfdir("/rpm/%{_target}/macros"), ":",
+ 				"~/.rpmmacros", NULL);
+     }
+ #else
+@@ -1117,7 +1140,7 @@
+  */
+ static void defaultMachine(rpmrcCtx ctx, const char ** arch, const char ** os)
+ {
+-    const char * const platform_path = SYSCONFDIR "/rpm/platform";
++    const char * const platform_path = _relocSysconfdir("/rpm/platform");
+     static struct utsname un;
+     char * chptr;
+     canonEntry canon;

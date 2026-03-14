@@ -8,7 +8,8 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 # || Apply source patches      ||
 # ==============================
 
-RPM_MAJOR_MINOR="${RPM_VERSION%.*}"
+# Extract major.minor (e.g. "4.19" from "4.19.1.1", "4.20" from "4.20.1")
+RPM_MAJOR_MINOR="$(echo "${RPM_VERSION}" | cut -d. -f1,2)"
 PATCHES_DIR="${SCRIPTS_DIR}/patches/${RPM_MAJOR_MINOR}"
 
 if [[ ! -d "${PATCHES_DIR}" ]]; then
@@ -27,6 +28,32 @@ done
 
 RPM_BUILD="/tmp/rpm-build"
 mkdir -p ${RPM_BUILD}
+
+# Version-specific CMake flags
+#
+# RPM < 4.20: Uses WITH_INTERNAL_OPENPGP for crypto (no Sequoia dependency).
+#             Has WITH_ARCHIVE option (libarchive support in rpm2archive).
+# RPM >= 4.20: Uses WITH_SEQUOIA for crypto. Dropped WITH_INTERNAL_OPENPGP.
+#              Dropped WITH_ARCHIVE option. Added WITH_ICONV, WITH_LIBDW,
+#              WITH_LIBELF, WITH_DOXYGEN as explicit options.
+VERSION_FLAGS=()
+case "${RPM_MAJOR_MINOR}" in
+    4.19)
+        VERSION_FLAGS+=(
+            -DWITH_INTERNAL_OPENPGP=ON
+            -DWITH_ARCHIVE=OFF
+        )
+        ;;
+    *)
+        VERSION_FLAGS+=(
+            -DWITH_SEQUOIA=OFF
+            -DWITH_ICONV=OFF
+            -DWITH_LIBDW=OFF
+            -DWITH_LIBELF=OFF
+            -DWITH_DOXYGEN=OFF
+        )
+        ;;
+esac
 
 cmake -S ${RPM_SOURCE} -B ${RPM_BUILD} \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
@@ -48,15 +75,10 @@ cmake -S ${RPM_SOURCE} -B ${RPM_BUILD} \
     -DWITH_DBUS=OFF \
     -DWITH_AUDIT=OFF \
     -DWITH_FAPOLICYD=OFF \
-    -DWITH_SEQUOIA=OFF \
     -DWITH_IMAEVM=OFF \
     -DWITH_FSVERITY=OFF \
     -DWITH_READLINE=OFF \
-    -DWITH_LIBDW=OFF \
-    -DWITH_LIBELF=OFF \
-    -DWITH_DOXYGEN=OFF \
     -DWITH_OPENSSL=ON \
-    -DWITH_ICONV=OFF \
     -DWITH_BZIP2=ON \
     -DWITH_ZSTD=ON \
     -DWITH_LIBLZMA=ON \
@@ -66,6 +88,7 @@ cmake -S ${RPM_SOURCE} -B ${RPM_BUILD} \
     -DBZIP2_INCLUDE_DIR="${PREFIX}/include" \
     -DMAGIC_LIBRARY="${PREFIX}/lib/libmagic.a" \
     -DLUA_LIBRARIES:FILEPATH="${PREFIX}/lib/liblua.a;m" \
-    -DLUA_INCLUDE_DIR:PATH="${PREFIX}/include"
+    -DLUA_INCLUDE_DIR:PATH="${PREFIX}/include" \
+    "${VERSION_FLAGS[@]}"
 
 cmake --build ${RPM_BUILD} --target rpmbuild -j$(nproc)

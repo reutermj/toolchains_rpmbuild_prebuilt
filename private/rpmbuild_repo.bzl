@@ -20,6 +20,7 @@ _TARBALL_TO_SHA256 = {
 _VERSION_MAP = {
     "6.0": ("6.0.1", "20260314"),
     "4.20": ("4.20.1", "20260314"),
+    "4.19": ("4.19.1.1", "PLACEHOLDER"),
 }
 
 def _prebuilt_rpmbuild_toolchain(rctx):
