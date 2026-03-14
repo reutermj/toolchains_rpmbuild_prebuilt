@@ -1,0 +1,145 @@
+name: Build rpmbuild (aarch64)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  # Required for uploading GitHub releases
+  contents: write
+  # Required for build provenance attestation
+  id-token: write
+  attestations: write
+
+env:
+  SCRIPTS_DIR: ${{ github.workspace }}/.github/workflows/build_rpmbuild
+  UTILS_DIR: ${{ github.workspace }}/.github/workflows/utils
+  ZLIB_VERSION: "1.3.2"
+  BZIP2_VERSION: "1.0.8"
+  XZ_VERSION: "5.8.2"
+  ZSTD_VERSION: "1.5.7"
+  OPENSSL_VERSION: "3.6.1"
+  SQLITE_VERSION: "3510300"
+  FILE_VERSION: "5.47"
+  POPT_VERSION: "1.19"
+  LUA_VERSION: "5.4.7"
+  LIBARCHIVE_VERSION: "3.8.6"
+  RPM_VERSION: "6.0.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Install dependencies
+        run: $SCRIPTS_DIR/step-01_install_dependencies
+
+      - name: Set up environment
+        run: $SCRIPTS_DIR/environment
+
+      - name: Download zlib source
+        run: $SCRIPTS_DIR/step-02.01_download_zlib_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download bzip2 source
+        run: $SCRIPTS_DIR/step-02.02_download_bzip2_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download xz source
+        run: $SCRIPTS_DIR/step-02.03_download_xz_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download zstd source
+        run: $SCRIPTS_DIR/step-02.04_download_zstd_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download openssl source
+        run: $SCRIPTS_DIR/step-02.05_download_openssl_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download sqlite source
+        run: $SCRIPTS_DIR/step-02.06_download_sqlite_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download file source
+        run: $SCRIPTS_DIR/step-02.07_download_file_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download popt source
+        run: $SCRIPTS_DIR/step-02.08_download_popt_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download lua source
+        run: $SCRIPTS_DIR/step-02.09_download_lua_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download libarchive source
+        run: $SCRIPTS_DIR/step-02.10_download_libarchive_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Download rpm source
+        run: $SCRIPTS_DIR/step-02.11_download_rpm_source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Build zlib
+        run: $SCRIPTS_DIR/step-03.01_build_zlib
+
+      - name: Build bzip2
+        run: $SCRIPTS_DIR/step-03.02_build_bzip2
+
+      - name: Build xz
+        run: $SCRIPTS_DIR/step-03.03_build_xz
+
+      - name: Build zstd
+        run: $SCRIPTS_DIR/step-03.04_build_zstd
+
+      - name: Build openssl
+        run: $SCRIPTS_DIR/step-03.05_build_openssl
+
+      - name: Build sqlite
+        run: $SCRIPTS_DIR/step-03.06_build_sqlite
+
+      - name: Build file
+        run: $SCRIPTS_DIR/step-03.07_build_file
+
+      - name: Build popt
+        run: $SCRIPTS_DIR/step-03.08_build_popt
+
+      - name: Build lua
+        run: $SCRIPTS_DIR/step-03.09_build_lua
+
+      - name: Build libarchive
+        run: $SCRIPTS_DIR/step-03.10_build_libarchive
+
+      - name: Build rpm
+        run: $SCRIPTS_DIR/step-04_build_rpm
+
+      - name: Collect licenses
+        run: $SCRIPTS_DIR/step-04.1_collect_licenses
+
+      - name: Package
+        run: $SCRIPTS_DIR/step-05_package
+
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v4.1.0
+        with:
+          subject-path: |
+            ${{ env.ARTIFACTS_DIR }}/*.tar.xz
+
+      - name: Upload to GitHub Releases
+        run: $SCRIPTS_DIR/step-06_upload_release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
