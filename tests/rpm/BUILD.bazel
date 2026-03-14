@@ -10,7 +10,10 @@ pkg_files(
 pkg_rpm(
     name = "hello-rpm",
     srcs = [":hello_files"],
-    architecture = "x86_64",
+    architecture = select({
+        "@platforms//cpu:x86_64": "x86_64",
+        "@platforms//cpu:aarch64": "aarch64",
+    }),
     description = "A hello world RPM for testing the rpmbuild toolchain.",
     license = "MIT",
     release = "1",
