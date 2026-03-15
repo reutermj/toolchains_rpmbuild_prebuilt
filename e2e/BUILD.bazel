@@ -1,0 +1,30 @@
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
+load("@rules_pkg//pkg:rpm.bzl", "pkg_rpm")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+pkg_files(
+    name = "hello_files",
+    srcs = ["hello.txt"],
+    prefix = "/usr/share/hello",
+)
+
+pkg_rpm(
+    name = "hello-rpm",
+    srcs = [":hello_files"],
+    architecture = select({
+        "@platforms//cpu:x86_64": "x86_64",
+        "@platforms//cpu:aarch64": "aarch64",
+    }),
+    description = "A hello world RPM built using toolchains_rpmbuild_prebuilt from BCR.",
+    license = "MIT",
+    release = "1",
+    summary = "Hello World RPM",
+    version = "1.0.0",
+)
+
+sh_test(
+    name = "validate_rpm",
+    srcs = ["validate_rpm.sh"],
+    args = ["$(location :hello-rpm)"],
+    data = [":hello-rpm"],
+)

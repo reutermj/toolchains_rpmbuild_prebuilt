@@ -1,0 +1,39 @@
+"End-to-end example: build an RPM using toolchains_rpmbuild_prebuilt from BCR"
+
+module(
+    name = "toolchains_rpmbuild_prebuilt_e2e",
+    version = "0",
+    bazel_compatibility = [">=7.0.0"],
+)
+
+bazel_dep(name = "toolchains_rpmbuild_prebuilt", version = "2026.3.15")
+bazel_dep(name = "rules_pkg", version = "1.2.0")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "rules_python", version = "1.9.0")
+bazel_dep(name = "toolchains_cc")
+git_override(
+    module_name = "toolchains_cc",
+    remote = "https://github.com/reutermj/toolchains_cc.git",
+    commit = "468a678c8ec5cffe00399bae0abf69af2ff0f4f8",
+)
+
+prebuilt_rpmbuild_toolchain = use_repo_rule(
+    "@toolchains_rpmbuild_prebuilt//:defs.bzl",
+    "prebuilt_rpmbuild_toolchain",
+)
+
+prebuilt_rpmbuild_toolchain(name = "rpmbuild")
+
+register_toolchains("@rpmbuild")
+
+cc_toolchains = use_extension("@toolchains_cc//:extensions.bzl", "cc_toolchains")
+cc_toolchains.declare(name = "cc")
+use_repo(cc_toolchains, "cc")
+register_toolchains("@cc")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    python_version = "3.12",
+    is_default = True,
+)

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RPM_PATH="${1:?Usage: validate_rpm.sh <path-to-rpm>}"
+
+if [[ ! -f "$RPM_PATH" ]]; then
+  echo "ERROR: RPM file not found: $RPM_PATH" >&2
+  exit 1
+fi
+
+echo "=== RPM package info ==="
+rpm -qip "$RPM_PATH"
+
+echo ""
+echo "=== RPM file list ==="
+rpm -qlp "$RPM_PATH"
+
+echo ""
+echo "=== Verifying expected file in package ==="
+if ! rpm -qlp "$RPM_PATH" | grep -q '/usr/share/hello/hello.txt'; then
+  echo "ERROR: /usr/share/hello/hello.txt not found in RPM" >&2
+  exit 1
+fi
+echo "OK: /usr/share/hello/hello.txt found in package"
+
+echo ""
+echo "=== Installing RPM ==="
+INSTALL_DBDIR="$TEST_TMPDIR/rpm-db"
+INSTALL_ROOT="$TEST_TMPDIR/rpm-root"
+mkdir -p "$INSTALL_DBDIR" "$INSTALL_ROOT"
+rpm -ivh --nodeps --dbpath "$INSTALL_DBDIR" --relocate /="$INSTALL_ROOT" --badreloc "$RPM_PATH"
+
+echo ""
+echo "=== Verifying installed file ==="
+if [[ ! -f "$INSTALL_ROOT/usr/share/hello/hello.txt" ]]; then
+  echo "ERROR: /usr/share/hello/hello.txt not found on disk after install" >&2
+  exit 1
+fi
+echo "OK: /usr/share/hello/hello.txt exists on disk"
+
+echo ""
+echo "=== All validations passed ==="

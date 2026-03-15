@@ -1,0 +1,3 @@
+# Required: pkg_rpm is implemented as a py_binary; this flag lets rules_python
+# run it hermetically without requiring system Python.
+common --@rules_python//python/config_settings:bootstrap_impl=script

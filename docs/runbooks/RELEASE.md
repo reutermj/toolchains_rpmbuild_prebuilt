@@ -72,40 +72,26 @@ The workflow runs two jobs:
 
 **Job 2 — `publish`**
 - Calls the `bazel-contrib/publish-to-bcr` reusable workflow
-- Opens a PR against your BCR fork `reutermj/bazel-central-registry`
+- Pushes a branch `toolchains_rpmbuild_prebuilt-<VERSION>` to the fork `reutermj/bazel-central-registry`
+- Opens a draft PR on `bazelbuild/bazel-central-registry` from `reutermj:toolchains_rpmbuild_prebuilt-<VERSION>`
 
-Verify the GitHub Release was created:
+Verify the GitHub Release was created and find the BCR PR:
 
 ```bash
 gh release view <VERSION> --repo reutermj/toolchains_rpmbuild_prebuilt
+gh pr list --repo bazelbuild/bazel-central-registry --author reutermj
 ```
 
-### 4. Merge the PR on your BCR fork
+### 4. Smoke test against the private BCR
 
-Find the PR that `publish-to-bcr` opened:
+Before marking the BCR PR ready for review, validate the registry entry works using the `e2e/` example (see [Smoke test against the private BCR](#smoke-test-against-the-private-bcr) below).
 
-```bash
-gh pr list --repo reutermj/bazel-central-registry
-```
+### 5. Mark the BCR PR ready and wait for merge
 
-Review and merge it:
+Once the smoke test passes, mark the draft PR as ready:
 
 ```bash
-gh pr merge <pr-number> --repo reutermj/bazel-central-registry --merge
-```
-
-### 5. Open a PR to the official BCR
-
-Sync your fork's `main` with upstream, then open the PR:
-
-```bash
-gh repo sync reutermj/bazel-central-registry --source bazelbuild/bazel-central-registry
-gh pr create \
-  --repo bazelbuild/bazel-central-registry \
-  --head reutermj:main \
-  --base main \
-  --title "toolchains_rpmbuild_prebuilt@<VERSION>" \
-  --body "Publishing toolchains_rpmbuild_prebuilt version <VERSION>"
+gh pr ready <pr-number> --repo bazelbuild/bazel-central-registry
 ```
 
 BCR will run presubmit checks (module resolution on Bazel 7.x and 8.x, no test execution). Once approved and merged, the module version is publicly available.
@@ -121,6 +107,24 @@ bazel_dep(name = "toolchains_rpmbuild_prebuilt", version = "<VERSION>")
 register_toolchains("@toolchains_rpmbuild_prebuilt")
 ```
 
+### Smoke test against the private BCR
+
+The `e2e/` directory contains a standalone Bazel workspace that exercises the full toolchain by building and installing a hello-world RPM. Run it against the private BCR (`reutermj/bazel-central-registry`) to confirm the registry entry works before the official BCR PR is merged:
+
+```bash
+cd e2e
+bazel test \
+  --registry=https://raw.githubusercontent.com/reutermj/bazel-central-registry/toolchains_rpmbuild_prebuilt-<VERSION>/ \
+  --registry=https://bcr.bazel.build/ \
+  //:validate_rpm
+```
+
+A passing test confirms:
+- The module resolves correctly from the registry
+- The prebuilt rpmbuild binary is downloaded and registered as a toolchain
+- `pkg_rpm()` successfully builds an RPM
+- The RPM installs correctly
+
 ---
 
 ## Relevant Files
@@ -133,3 +137,4 @@ register_toolchains("@toolchains_rpmbuild_prebuilt")
 | [.bcr/presubmit.yml](.bcr/presubmit.yml) | BCR presubmit config (module resolution only, no tests) |
 | [.github/workflows/publish.yml](.github/workflows/publish.yml) | Publish workflow |
 | [.github/workflows/publish/publish.sh](.github/workflows/publish/publish.sh) | Script that creates the GitHub Release |
+| [e2e/](e2e/) | Standalone smoke-test workspace for validating a registry entry |

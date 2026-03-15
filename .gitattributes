@@ -16,3 +16,4 @@ bazel.bat export-ignore
 .bazelrc export-ignore
 docs/ export-ignore
 tests/ export-ignore
+e2e/ export-ignore
