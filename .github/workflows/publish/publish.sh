@@ -7,7 +7,13 @@ gh release create "$DATE" \
   $SRC_TAR \
   --title "$DATE" \
   --notes "### Installation
-\`\`\`
+\`\`\`python
 bazel_dep(name = \"toolchains_rpmbuild_prebuilt\", version = \"$DATE\")
-register_toolchains(\"@toolchains_rpmbuild_prebuilt\")
+
+prebuilt_rpmbuild_toolchain = use_repo_rule(
+    \"@toolchains_rpmbuild_prebuilt//:defs.bzl\",
+    \"prebuilt_rpmbuild_toolchain\",
+)
+prebuilt_rpmbuild_toolchain(name = \"rpmbuild\")
+register_toolchains(\"@rpmbuild\")
 \`\`\`"
