@@ -43,6 +43,38 @@ prebuilt_rpmbuild_toolchain(name = "rpmbuild_x86_64", arch = "x86_64")
 prebuilt_rpmbuild_toolchain(name = "rpmbuild_aarch64", arch = "aarch64")
 ```
 
+### `rules_python` toolchain
+
+`rules_pkg`'s `pkg_rpm()` is implemented as a `py_binary`, so a hermetic Python
+toolchain is required. Add `rules_python` to your `MODULE.bazel` and register a
+Python toolchain:
+
+```starlark
+bazel_dep(name = "rules_python", version = "1.9.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    python_version = "3.12",
+    is_default = True,
+)
+```
+
+### IMPORTANT NOTE:
+
+You will likely need to add the following to your `.bazelrc`:
+
+```
+common --@rules_python//python/config_settings:bootstrap_impl=script
+```
+
+This is not specific to this package. It is a consequence of how `rules_pkg`
+invokes `pkg_rpm()` via a `py_binary`. By default, `rules_python` generates a
+Python bootstrap script with a `#!/usr/bin/env python3` shebang. If `python3`
+is not on the system `PATH`, the action fails before the hermetic interpreter
+can be located. Setting `bootstrap_impl=script` generates a shell-based
+bootstrap instead, which locates the hermetic Python interpreter from the
+runfiles tree without requiring any system Python.
+
 ## Supported versions
 
 | RPM version | Architectures       |
