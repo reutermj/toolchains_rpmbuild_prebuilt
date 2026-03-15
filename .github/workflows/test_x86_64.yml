@@ -10,13 +10,22 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    container:
+      image: fedora:latest
+
     strategy:
       matrix:
         rpm_version: ["6.0", "4.20", "4.19"]
 
     steps:
+      - name: Install system dependencies
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            rpm \
+            git
+
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
-      - name: Build test RPM (rpm ${{ matrix.rpm_version }})
-        run: bazel build //tests/rpm:hello-rpm --repo_env=rpmbuild_version=${{ matrix.rpm_version }}
+      - name: Build and validate RPM (rpm ${{ matrix.rpm_version }})
+        run: ./bazel test //tests/rpm:validate_rpm --repo_env=rpmbuild_version=${{ matrix.rpm_version }}

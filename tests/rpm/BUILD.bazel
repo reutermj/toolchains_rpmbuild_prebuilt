@@ -1,5 +1,6 @@
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
 load("@rules_pkg//pkg:rpm.bzl", "pkg_rpm")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 pkg_files(
     name = "hello_files",
@@ -19,4 +20,11 @@ pkg_rpm(
     release = "1",
     summary = "Hello World RPM",
     version = "1.0.0",
+)
+
+sh_test(
+    name = "validate_rpm",
+    srcs = ["validate_rpm.sh"],
+    args = ["$(location :hello-rpm)"],
+    data = [":hello-rpm"],
 )

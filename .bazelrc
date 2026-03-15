@@ -1,0 +1,21 @@
+# Problem:
+# rules_pkg's pkg_rpm rule builds RPMs by running make_rpm, which is a
+# py_binary. When rules_python compiles this py_binary, it generates a bootstrap
+# wrapper script with a hardcoded shebang: "#!/usr/bin/env python3". When the
+# kernel executes this script, it looks for python3 on the system PATH. If
+# Python is not installed locally, the action fails immediately with
+# "/usr/bin/env: 'python3': No such file or directory", before the wrapper ever
+# gets a chance to locate the hermetic Python interpreter.
+#
+# What this flag does:
+# By default, rules_python uses bootstrap_impl=system_python, which generates a
+# Python bootstrap script (hence the "#!/usr/bin/env python3" shebang — it
+# needs a Python interpreter just to start). Setting bootstrap_impl=script tells
+# rules_python to generate a shell bootstrap script instead. Shell (/bin/sh) is
+# universally available, so the shebang works everywhere.
+#
+# Why it solves the problem:
+# The shell-based bootstrap script can directly locate and exec the hermetic
+# Python interpreter from the runfiles tree without needing any Python on the
+# system to get started.
+build --@rules_python//python/config_settings:bootstrap_impl=script
