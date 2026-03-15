@@ -28,4 +28,4 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Build and validate RPM (rpm ${{ matrix.rpm_version }})
-        run: ./bazel test //tests/rpm:validate_rpm --repo_env=rpmbuild_version=${{ matrix.rpm_version }}
+        run: ./bazel test //tests/... --repo_env=rpmbuild_version=${{ matrix.rpm_version }}

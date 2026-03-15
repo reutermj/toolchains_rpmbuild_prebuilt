@@ -286,7 +286,7 @@
     "@@toolchains_cc+//:extensions.bzl%cc_toolchains": {
       "general": {
         "bzlTransitiveDigest": "y/90Op5CkDJ5bGSWRLxi6khFj+FppFzQ9bdTuFpkWrI=",
-        "usagesDigest": "yIknIz2jUze+YHRQotv17pQVlPP+XQh/zSNThwSZtjw=",
+        "usagesDigest": "s3tUoQJy9O070Iid7qqSJT22akVycDrTshpf3nbOgjY=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "cc": {

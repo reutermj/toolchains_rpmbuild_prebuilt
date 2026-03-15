@@ -1,0 +1,44 @@
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
+load("@rules_pkg//pkg:rpm.bzl", "pkg_rpm")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+# --- Minimal file content so the RPM has something in it ---
+pkg_files(
+    name = "placeholder_files",
+    srcs = ["placeholder.txt"],
+    prefix = "/usr/share/metadata-test",
+)
+
+# --- RPM with scriptlets, dependencies, epoch, and version/release from files ---
+pkg_rpm(
+    name = "metadata-rpm",
+    srcs = [":placeholder_files"],
+    architecture = select({
+        "@platforms//cpu:x86_64": "x86_64",
+        "@platforms//cpu:aarch64": "aarch64",
+    }),
+    conflicts = ["conflicting-pkg >= 1.0"],
+    description = "A test RPM exercising scriptlets, dependencies, epoch, and version/release from files.",
+    epoch = "2",
+    license = "MIT",
+    obsoletes = ["old-metadata-pkg"],
+    post_scriptlet = "echo 'post-install: configuring metadata-test'",
+    pre_scriptlet = "echo 'pre-install: preparing metadata-test'",
+    preun_scriptlet = "echo 'pre-uninstall: cleaning metadata-test'",
+    provides = ["metadata-test-capability = 2.5.0"],
+    release_file = "release.txt",
+    requires = [
+        "bash",
+        "coreutils >= 8.0",
+    ],
+    summary = "Metadata Test RPM",
+    version_file = "version.txt",
+)
+
+# --- Validate the RPM ---
+sh_test(
+    name = "validate_rpm_metadata",
+    srcs = ["validate_rpm_metadata.sh"],
+    args = ["$(location :metadata-rpm)"],
+    data = [":metadata-rpm"],
+)

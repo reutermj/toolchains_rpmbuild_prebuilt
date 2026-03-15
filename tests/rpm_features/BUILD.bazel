@@ -1,0 +1,84 @@
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_filegroup", "pkg_files", "pkg_mkdirs", "pkg_mklink")
+load("@rules_pkg//pkg:rpm.bzl", "pkg_rpm")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+# --- Binary file with 0755 permissions ---
+pkg_files(
+    name = "bin_files",
+    srcs = ["myapp.sh"],
+    attributes = pkg_attributes(
+        group = "root",
+        mode = "0755",
+        user = "root",
+    ),
+    prefix = "/usr/bin",
+    renames = {"myapp.sh": "myapp"},
+)
+
+# --- Config file marked as %config(noreplace) ---
+pkg_files(
+    name = "config_files",
+    srcs = ["myapp.conf"],
+    attributes = pkg_attributes(
+        group = "root",
+        mode = "0644",
+        rpm_filetag = "%config(noreplace)",
+        user = "root",
+    ),
+    prefix = "/etc/myapp",
+)
+
+# --- Owned directories ---
+pkg_mkdirs(
+    name = "app_dirs",
+    attributes = pkg_attributes(
+        group = "root",
+        mode = "0755",
+        user = "root",
+    ),
+    dirs = [
+        "/var/lib/myapp",
+        "/var/log/myapp",
+    ],
+)
+
+# --- Symlink: /usr/local/bin/myapp -> /usr/bin/myapp ---
+pkg_mklink(
+    name = "app_symlink",
+    link_name = "/usr/local/bin/myapp",
+    target = "/usr/bin/myapp",
+)
+
+# --- Group everything together ---
+pkg_filegroup(
+    name = "myapp_content",
+    srcs = [
+        ":app_dirs",
+        ":app_symlink",
+        ":bin_files",
+        ":config_files",
+    ],
+)
+
+# --- Build the RPM ---
+pkg_rpm(
+    name = "myapp-rpm",
+    srcs = [":myapp_content"],
+    architecture = select({
+        "@platforms//cpu:x86_64": "x86_64",
+        "@platforms//cpu:aarch64": "aarch64",
+    }),
+    description = "A test RPM exercising config files, directories, symlinks, and permissions.",
+    license = "MIT",
+    release = "1",
+    summary = "MyApp Feature Test RPM",
+    version = "1.0.0",
+)
+
+# --- Validate the RPM ---
+sh_test(
+    name = "validate_rpm_features",
+    srcs = ["validate_rpm_features.sh"],
+    args = ["$(location :myapp-rpm)"],
+    data = [":myapp-rpm"],
+)

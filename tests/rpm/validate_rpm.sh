@@ -30,11 +30,14 @@ echo "OK: /usr/share/hello/hello.txt found in package"
 
 echo ""
 echo "=== Installing RPM ==="
-rpm -ivh --nodeps "$RPM_PATH"
+INSTALL_DBDIR="$TEST_TMPDIR/rpm-db"
+INSTALL_ROOT="$TEST_TMPDIR/rpm-root"
+mkdir -p "$INSTALL_DBDIR" "$INSTALL_ROOT"
+rpm -ivh --nodeps --dbpath "$INSTALL_DBDIR" --relocate /="$INSTALL_ROOT" --badreloc "$RPM_PATH"
 
 echo ""
 echo "=== Verifying installed file ==="
-if [[ ! -f /usr/share/hello/hello.txt ]]; then
+if [[ ! -f "$INSTALL_ROOT/usr/share/hello/hello.txt" ]]; then
   echo "ERROR: /usr/share/hello/hello.txt not found on disk after install" >&2
   exit 1
 fi
