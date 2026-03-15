@@ -1,0 +1,49 @@
+name: Publish to BCR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    outputs:
+      release-tag: ${{ steps.create-tag.outputs.tag }}
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create source tarball
+        id: create-tag
+        run: |
+          DATE=$(grep -o 'version = "[^"]*"' MODULE.bazel | cut -d '"' -f 2 | head -n 1)
+          SRC_TAR="toolchains_rpmbuild_prebuilt-$DATE.tar.gz"
+          git archive --format=tar.gz --output=$SRC_TAR main
+          echo "tag=$DATE" >> $GITHUB_OUTPUT
+          echo "release_source_tarball=$SRC_TAR" >> $GITHUB_ENV
+
+      - name: Create release tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./.github/workflows/publish/publish.sh
+
+  publish:
+    needs: create-release
+    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@main
+    with:
+      tag_name: ${{ needs.create-release.outputs.release-tag }}
+      registry_fork: reutermj/bazel-central-registry
+      attest: false
+      tag_prefix: ""
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    secrets:
+      publish_token: ${{ secrets.BCR_PUBLISH_TOKEN }}

@@ -3,8 +3,10 @@
 _DOWNLOAD_BASE_URL = "https://github.com/reutermj/toolchains_rpmbuild_prebuilt/releases/download/binaries"
 
 _ARCH_MAP = {
+    "amd64": "x86_64",
     "x86_64": "x86_64",
     "aarch64": "aarch64",
+    "arm64": "aarch64",
 }
 
 _TARBALL_TO_SHA256 = {

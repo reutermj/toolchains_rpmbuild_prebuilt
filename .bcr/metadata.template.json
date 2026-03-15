@@ -1,0 +1,13 @@
+{
+  "homepage": "https://github.com/reutermj/toolchains_rpmbuild_prebuilt",
+  "maintainers": [
+    {
+      "name": "Mark Reuter",
+      "email": "13319190+reutermj@users.noreply.github.com",
+      "github": "reutermj"
+    }
+  ],
+  "repository": ["github:reutermj/toolchains_rpmbuild_prebuilt"],
+  "versions": [],
+  "yanked_versions": {}
+}

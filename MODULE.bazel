@@ -1,6 +1,11 @@
 "Prebuilt, statically linked rpmbuild toolchain for rules_pkg pkg_rpm()"
 
-module(name = "toolchains_rpmbuild_prebuilt")
+module(
+    name = "toolchains_rpmbuild_prebuilt",
+    version = "2026.3.15",
+    bazel_compatibility = [">=7.0.0"],
+    compatibility_level = 0,
+)
 
 # ==================
 # || Dependencies ||

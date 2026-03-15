@@ -39,10 +39,9 @@ When the execution platform differs from the host (e.g. remote execution), set
 the `arch` attribute so the correct binary is downloaded:
 
 ```starlark
-prebuilt_rpmbuild_toolchain(name = "rpmbuild", arch = "aarch64")
+prebuilt_rpmbuild_toolchain(name = "rpmbuild_x86_64", arch = "x86_64")
+prebuilt_rpmbuild_toolchain(name = "rpmbuild_aarch64", arch = "aarch64")
 ```
-
-Accepted values: `x86_64`, `aarch64`.
 
 ## Supported versions
 
