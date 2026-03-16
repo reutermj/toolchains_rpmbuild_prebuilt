@@ -14,6 +14,7 @@ def declare_rpmbuild_toolchain(name, data, version, cpu, visibility = None):
     """
     rpmbuild_toolchain(
         name = name + "_info",
+        label = ":bin/rpmbuild",
         data = data,
         version = version,
         visibility = ["//visibility:private"],
