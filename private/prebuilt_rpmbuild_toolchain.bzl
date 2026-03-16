@@ -65,11 +65,6 @@ def _prebuilt_rpmbuild_toolchain(rctx):
         sha256 = sha256,
     )
 
-    # The rpmbuild binary resolves its config paths (lib/rpm/rpmrc, etc.)
-    # relative to its own location via /proc/self/exe. The tarball extracts
-    # to: bin/rpmbuild, lib/rpm/*, share/misc/magic.mgc
-    rpmbuild_path = str(rctx.path("bin/rpmbuild"))
-
     # RPM 6 requires at least one .attr file in the fileattrs directory.
     # Provide a minimal one so file processing doesn't fail.
     rctx.file("lib/rpm/fileattrs/none.attr", "")
@@ -81,14 +76,13 @@ load("@toolchains_rpmbuild_prebuilt//private:declare_toolchain.bzl", "declare_rp
 
 declare_rpmbuild_toolchain(
     name = "{name}",
-    rpmbuild_path = "{rpmbuild_path}",
     version = "{version}",
+    data = glob(["**"]),
     cpu = "{cpu}",
     visibility = ["//visibility:public"],
 )
 """.lstrip().format(
             name = rctx.original_name,
-            rpmbuild_path = rpmbuild_path,
             version = patch_version,
             cpu = arch,
         ),
