@@ -1,6 +1,6 @@
 --- a/rpmio/rpmfileutil.c
 +++ b/rpmio/rpmfileutil.c
-@@ -484,7 +484,25 @@
+@@ -484,7 +484,34 @@
  static void setConfigDir(void)
  {
      char *rpmenv = getenv("RPM_CONFIGDIR");
@@ -12,18 +12,27 @@
 +        ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
 +        if (_len > 0) {
 +            _exe[_len] = '\0';
-+            /* strip "bin/rpmbuild" -> two path components */
-+            char *_s = strrchr(_exe, '/');
-+            if (_s) *_s = '\0';
-+            _s = strrchr(_exe, '/');
-+            if (_s) *_s = '\0';
-+            char *_buf = NULL;
-+            rasprintf(&_buf, "%s/lib/rpm", _exe);
-+            rpm_config_dir = _buf;
++            char *_dir = strdup(_exe);
++            int _found = 0;
++            char *_sep;
++            while ((_sep = strrchr(_dir, '/')) != NULL && _sep != _dir) {
++                *_sep = '\0';
++                char _marker[4096];
++                snprintf(_marker, sizeof(_marker), "%s/BUILD.bazel", _dir);
++                struct stat _st;
++                if (stat(_marker, &_st) == 0) {
++                    rasprintf((char **)&rpm_config_dir, "%s/lib/rpm", _dir);
++                    _found = 1;
++                    break;
++                }
++            }
++            if (!_found)
++                rpm_config_dir = RPM_CONFIGDIR;
++            free(_dir);
 +        } else {
 +            rpm_config_dir = RPM_CONFIGDIR;
 +        }
 +    }
  }
- 
+
  const char *rpmConfigDir(void)

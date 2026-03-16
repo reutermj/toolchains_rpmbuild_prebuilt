@@ -2,11 +2,12 @@ diff --git a/lib/rpmrc.cc b/lib/rpmrc.cc
 index 2b3baed..bc031bd 100644
 --- a/lib/rpmrc.cc
 +++ b/lib/rpmrc.cc
-@@ -45,6 +45,27 @@
+@@ -45,6 +45,40 @@
  
  #include "debug.h"
  
 +/* Relocatable SYSCONFDIR - resolves <prefix>/etc from /proc/self/exe */
++#include <sys/stat.h>
 +#include <unistd.h>
 +static std::string _relocSysconfdir(const char *suffix = "") {
 +    static std::string _prefix;
@@ -15,11 +16,23 @@ index 2b3baed..bc031bd 100644
 +        ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
 +        if (_len > 0) {
 +            _exe[_len] = '\0';
-+            char *_s = strrchr(_exe, '/');
-+            if (_s) *_s = '\0';
-+            _s = strrchr(_exe, '/');
-+            if (_s) *_s = '\0';
-+            _prefix = std::string(_exe) + "/etc";
++            std::string _dir(_exe);
++            bool _found = false;
++            while (!_dir.empty() && _dir != "/") {
++                auto _pos = _dir.rfind('/');
++                if (_pos == std::string::npos) break;
++                _dir.erase(_pos);
++                struct stat _st;
++                std::string _marker = _dir + "/BUILD.bazel";
++                if (stat(_marker.c_str(), &_st) == 0) {
++                    _prefix = _dir + "/etc";
++                    _found = true;
++                    break;
++                }
++            }
++            if (!_found) {
++                _prefix = SYSCONFDIR;
++            }
 +        } else {
 +            _prefix = SYSCONFDIR;
 +        }
@@ -30,7 +43,7 @@ index 2b3baed..bc031bd 100644
  using wrlock = std::unique_lock<std::shared_mutex>;
  using rdlock = std::shared_lock<std::shared_mutex>;
  
-@@ -390,7 +411,7 @@ static void setDefaults(void)
+@@ -390,7 +424,7 @@ static void setDefaults(void)
      if (!defrcfiles) {
  	defrcfiles = rstrscat(NULL, confdir, "/rpmrc", ":",
  				confdir, "/" RPM_VENDOR "/rpmrc", ":",
@@ -39,7 +52,7 @@ index 2b3baed..bc031bd 100644
  				userrc, NULL);
      }
  
-@@ -401,9 +422,9 @@ static void setDefaults(void)
+@@ -401,9 +435,9 @@ static void setDefaults(void)
  				confdir, "/platform/%{_target}/macros", ":",
  				confdir, "/fileattrs/*.attr", ":",
  				confdir, "/" RPM_VENDOR "/macros", ":",
@@ -52,7 +65,7 @@ index 2b3baed..bc031bd 100644
  				usermacros, NULL);
      }
  
-@@ -1050,7 +1071,10 @@ static void read_auxv(void)
+@@ -1050,7 +1084,10 @@ static void read_auxv(void)
   */
  static void defaultMachine(rpmrcCtx ctx, const char ** arch, const char ** os)
  {

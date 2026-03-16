@@ -54,8 +54,11 @@ to load its configuration.
 
 The patch inserts a helper function `_relocSysconfdir()` after the
 [`#include "debug.h"` line](https://github.com/rpm-software-management/rpm/blob/58a917a6c5e24e9e8a01976c17d2eee06249b9b6/lib/rpmrc.cc#L46)
-that resolves `<prefix>/etc` relative to the binary's location at runtime using
-`/proc/self/exe`:
+that resolves `<prefix>/etc` relative to the binary's location at runtime. It
+reads `/proc/self/exe` to find the binary's absolute path, then walks up the
+directory tree looking for a `BUILD.bazel` file — a marker for the root of a
+Bazel runfiles tree. Once found, it uses that directory as the base and appends
+`/etc`:
 
 ```cpp
 static std::string _relocSysconfdir(const char *suffix = "") {
@@ -65,12 +68,23 @@ static std::string _relocSysconfdir(const char *suffix = "") {
         ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
         if (_len > 0) {
             _exe[_len] = '\0';
-            // strip "bin/rpmbuild" -> two path components
-            char *_s = strrchr(_exe, '/');
-            if (_s) *_s = '\0';
-            _s = strrchr(_exe, '/');
-            if (_s) *_s = '\0';
-            _prefix = std::string(_exe) + "/etc";
+            std::string _dir(_exe);
+            bool _found = false;
+            while (!_dir.empty() && _dir != "/") {
+                auto _pos = _dir.rfind('/');
+                if (_pos == std::string::npos) break;
+                _dir.erase(_pos);
+                struct stat _st;
+                std::string _marker = _dir + "/BUILD.bazel";
+                if (stat(_marker.c_str(), &_st) == 0) {
+                    _prefix = _dir + "/etc";
+                    _found = true;
+                    break;
+                }
+            }
+            if (!_found) {
+                _prefix = SYSCONFDIR;
+            }
         } else {
             _prefix = SYSCONFDIR;
         }

@@ -57,8 +57,11 @@ Bazel, the binary cannot find its configuration files.
 ## Fix
 
 The patch replaces the `rpmConfDir` constructor to resolve the configuration
-directory relative to the binary's own location at runtime using
-`/proc/self/exe`:
+directory relative to the binary's own location at runtime. It reads
+`/proc/self/exe` to find the binary's absolute path, then walks up the
+directory tree looking for a `BUILD.bazel` file — a marker for the root of a
+Bazel runfiles tree. Once found, it uses that directory as the base and appends
+`/lib/rpm`:
 
 ```cpp
 rpmConfDir() {
@@ -70,12 +73,23 @@ rpmConfDir() {
         ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
         if (_len > 0) {
             _exe[_len] = '\0';
-            // strip "bin/rpmbuild" -> two path components
-            char *_s = strrchr(_exe, '/');
-            if (_s) *_s = '\0';
-            _s = strrchr(_exe, '/');
-            if (_s) *_s = '\0';
-            path = std::string(_exe) + "/lib/rpm";
+            std::string _dir(_exe);
+            bool _found = false;
+            while (!_dir.empty() && _dir != "/") {
+                auto _pos = _dir.rfind('/');
+                if (_pos == std::string::npos) break;
+                _dir.erase(_pos);
+                struct stat _st;
+                std::string _marker = _dir + "/BUILD.bazel";
+                if (stat(_marker.c_str(), &_st) == 0) {
+                    path = _dir + "/lib/rpm";
+                    _found = true;
+                    break;
+                }
+            }
+            if (!_found) {
+                path = RPM_CONFIGDIR;
+            }
         } else {
             path = RPM_CONFIGDIR;
         }
@@ -83,9 +97,10 @@ rpmConfDir() {
 };
 ```
 
-For example, if the binary is at `/some/path/bin/rpmbuild`, `confdir` resolves
-to `/some/path/lib/rpm`, and the search paths become
-`/some/path/lib/rpm/rpmrc`, `/some/path/lib/rpm/macros`, etc.
+For example, if the binary is at `/some/path/bin/rpmbuild` and
+`/some/path/BUILD.bazel` exists, `confdir` resolves to `/some/path/lib/rpm`,
+and the search paths become `/some/path/lib/rpm/rpmrc`,
+`/some/path/lib/rpm/macros`, etc.
 
 The `RPM_CONFIGDIR` environment variable is still respected as an override, and
 the compile-time `RPM_CONFIGDIR` constant is used as a final fallback if

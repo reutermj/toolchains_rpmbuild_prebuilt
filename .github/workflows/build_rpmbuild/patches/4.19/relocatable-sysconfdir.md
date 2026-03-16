@@ -55,8 +55,11 @@ to load its configuration.
 
 The patch inserts a helper function `_relocSysconfdir()` after the
 [`#include "debug.h"` line](https://github.com/rpm-software-management/rpm/blob/bc2f9b7e797e8f519872ad154bd7a32ee8f411ad/lib/rpmrc.c#L41)
-that resolves `<prefix>/etc` relative to the binary's location at runtime using
-`/proc/self/exe`:
+that resolves `<prefix>/etc` relative to the binary's location at runtime. It
+reads `/proc/self/exe` to find the binary's absolute path, then walks up the
+directory tree looking for a `BUILD.bazel` file — a marker for the root of a
+Bazel runfiles tree. Once found, it uses that directory as the base and appends
+`/etc`:
 
 ```c
 static const char *_relocSysconfdir(const char *suffix) {
@@ -67,12 +70,24 @@ static const char *_relocSysconfdir(const char *suffix) {
         ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
         if (_len > 0) {
             _exe[_len] = '\0';
-            char *_s = strrchr(_exe, '/');
-            if (_s) *_s = '\0';
-            _s = strrchr(_exe, '/');
-            if (_s) *_s = '\0';
-            strcat(_exe, "/etc");
-            _prefix = strdup(_exe);
+            char *_dir = strdup(_exe);
+            int _found = 0;
+            char *_sep;
+            while ((_sep = strrchr(_dir, '/')) != NULL && _sep != _dir) {
+                *_sep = '\0';
+                char _marker[4096];
+                snprintf(_marker, sizeof(_marker), "%s/BUILD.bazel", _dir);
+                struct stat _st;
+                if (stat(_marker, &_st) == 0) {
+                    _prefix = (char *)malloc(strlen(_dir) + 5);
+                    sprintf(_prefix, "%s/etc", _dir);
+                    _found = 1;
+                    break;
+                }
+            }
+            if (!_found)
+                _prefix = SYSCONFDIR;
+            free(_dir);
         } else {
             _prefix = SYSCONFDIR;
         }

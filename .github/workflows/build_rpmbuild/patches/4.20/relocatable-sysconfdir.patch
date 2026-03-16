@@ -1,9 +1,10 @@
 --- a/lib/rpmrc.c
 +++ b/lib/rpmrc.c
-@@ -40,6 +40,29 @@
- 
+@@ -40,6 +40,41 @@
+
  #include "debug.h"
- 
+
++#include <sys/stat.h>
 +static const char *_relocSysconfdir(const char *suffix) {
 +    static char *_prefix = NULL;
 +    static char _buf[8192];
@@ -12,12 +13,24 @@
 +        ssize_t _len = readlink("/proc/self/exe", _exe, sizeof(_exe) - 1);
 +        if (_len > 0) {
 +            _exe[_len] = '\0';
-+            char *_s = strrchr(_exe, '/');
-+            if (_s) *_s = '\0';
-+            _s = strrchr(_exe, '/');
-+            if (_s) *_s = '\0';
-+            strcat(_exe, "/etc");
-+            _prefix = strdup(_exe);
++            char *_dir = strdup(_exe);
++            int _found = 0;
++            char *_sep;
++            while ((_sep = strrchr(_dir, '/')) != NULL && _sep != _dir) {
++                *_sep = '\0';
++                char _marker[4096];
++                snprintf(_marker, sizeof(_marker), "%s/BUILD.bazel", _dir);
++                struct stat _st;
++                if (stat(_marker, &_st) == 0) {
++                    _prefix = (char *)malloc(strlen(_dir) + 5);
++                    sprintf(_prefix, "%s/etc", _dir);
++                    _found = 1;
++                    break;
++                }
++            }
++            if (!_found)
++                _prefix = SYSCONFDIR;
++            free(_dir);
 +        } else {
 +            _prefix = SYSCONFDIR;
 +        }
@@ -26,11 +39,10 @@
 +    return _buf;
 +}
 +
-+
  static const char * defrcfiles = NULL;
  const char * macrofiles = NULL;
- 
-@@ -485,7 +508,7 @@
+
+@@ -485,7 +520,7 @@
      if (!defrcfiles) {
  	defrcfiles = rstrscat(NULL, confdir, "/rpmrc", ":",
  				confdir, "/" RPM_VENDOR "/rpmrc", ":",
@@ -38,8 +50,8 @@
 +				_relocSysconfdir("/rpmrc"), ":",
  				userrc, NULL);
      }
- 
-@@ -496,9 +519,9 @@
+
+@@ -496,9 +531,9 @@
  				confdir, "/platform/%{_target}/macros", ":",
  				confdir, "/fileattrs/*.attr", ":",
  				confdir, "/" RPM_VENDOR "/macros", ":",
@@ -51,4 +63,4 @@
 +				_relocSysconfdir("/rpm/%{_target}/macros"), ":",
  				usermacros, NULL);
      }
- 
+
