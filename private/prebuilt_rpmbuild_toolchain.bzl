@@ -10,19 +10,19 @@ _ARCH_MAP = {
 }
 
 _TARBALL_TO_SHA256 = {
-    "rpmbuild-x86_64-linux-6.0.1-20260314.tar.xz": "25afc406f24e688beb1e3cf83d4e79864e3360b28efb066709d78925824d2b98",
-    "rpmbuild-aarch64-linux-6.0.1-20260314.tar.xz": "227a1de5a954f0af2d35ae25e9b7b35de395d7dba63191ac23368a023f0223bd",
-    "rpmbuild-x86_64-linux-4.20.1-20260314.tar.xz": "7ce9e6cdabaae146938bdfde774fdca0380837c80ad0edaf0e7feee02108c41b",
-    "rpmbuild-aarch64-linux-4.20.1-20260314.tar.xz": "9826fdc1e24509ba5c2ca4a02c2d797226959f8accba19d43cbbf5456d0fb498",
-    "rpmbuild-x86_64-linux-4.19.1.1-20260314.tar.xz": "9e58e003722307217ecd0bdc5c7d183aadb5d6302fa64e4e6fed5b228da12ad0",
-    "rpmbuild-aarch64-linux-4.19.1.1-20260314.tar.xz": "58dfeea006f0684e218ac30a4316c3febfc648e51a72f147d19c17bf53acb3e5",
+    "rpmbuild-x86_64-linux-6.0.1-20260316.tar.xz": "f43a61a2611d04446b3be35f4a6bb23af0dc08176ed2e8a6c22c722c26aee3f3",
+    "rpmbuild-aarch64-linux-6.0.1-20260316.tar.xz": "6e020c25b40b8223edd3b1ffc789f63f914de028db5a99bd9fe4948ea55d92b8",
+    "rpmbuild-x86_64-linux-4.20.1-20260316.tar.xz": "b118700fbf88a1671d6d14810517b4bb4e26c23ad1cd5ff5f4a018e1e0a6de5a",
+    "rpmbuild-aarch64-linux-4.20.1-20260316.tar.xz": "92132a21c062d9333f369096dfa04a7bd002f51fd810eeea6fad9137e6b34bc6",
+    "rpmbuild-x86_64-linux-4.19.1.1-20260316.tar.xz": "41eafd9eb05ff597ae867ea265d03ba04127bb1e078dbcd0f35d781f283bd8de",
+    "rpmbuild-aarch64-linux-4.19.1.1-20260316.tar.xz": "6da65afc33107569f86c898f7274bab1336eabae7f3c91c26f9ddbdc862f2966",
 }
 
 # Maps major.minor version to the latest supported patch version and build date.
 _VERSION_MAP = {
-    "6.0": ("6.0.1", "20260314"),
-    "4.20": ("4.20.1", "20260314"),
-    "4.19": ("4.19.1.1", "20260314"),
+    "6.0": ("6.0.1", "20260316"),
+    "4.20": ("4.20.1", "20260316"),
+    "4.19": ("4.19.1.1", "20260316"),
 }
 
 def _prebuilt_rpmbuild_toolchain(rctx):
