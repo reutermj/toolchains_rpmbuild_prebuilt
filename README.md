@@ -3,7 +3,10 @@
 Prebuilt, statically linked `rpmbuild` binaries for use with
 [rules_pkg](https://github.com/bazelbuild/rules_pkg)'s `pkg_rpm()` rule. The binaries are fully self-contained with no system dependencies, making them
 ideal for remote execution environments. All binaries are built via GitHub
-Actions with [SLSA provenance](https://slsa.dev/) attestations.
+Actions with [SLSA provenance](https://slsa.dev/) attestations. Provenance is
+verified at download time using the [GitHub CLI](https://cli.github.com/)
+(`gh` >= 2.49.0); see [SLSA provenance verification](#slsa-provenance-verification)
+for details.
 
 ## Setup
 
@@ -85,6 +88,21 @@ runfiles tree without requiring any system Python.
 
 Only the latest patch release of each `major.minor` version is tracked. The
 toolchain resolves the patch version automatically.
+
+## SLSA provenance verification
+
+By default, this module verifies [SLSA build provenance](https://slsa.dev/)
+for every downloaded tarball using the
+[GitHub CLI](https://cli.github.com/) (`gh`). This confirms the binary was built
+by this repository's GitHub Actions workflow and has not been tampered with.
+
+**Requirements:** `gh` >= 2.49.0 on `PATH`, authenticated (`gh auth login`).
+
+To disable verification:
+
+```starlark
+prebuilt_rpmbuild_toolchain(name = "rpmbuild", verify_provenance = False)
+```
 
 ## Version override via environment
 

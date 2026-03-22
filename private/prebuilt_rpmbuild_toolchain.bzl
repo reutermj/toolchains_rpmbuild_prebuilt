@@ -1,6 +1,10 @@
 """Repository rule that downloads and declares a prebuilt rpmbuild toolchain."""
 
 _DOWNLOAD_BASE_URL = "https://github.com/reutermj/toolchains_rpmbuild_prebuilt/releases/download/binaries"
+_ATTESTATION_REPO = "reutermj/toolchains_rpmbuild_prebuilt"
+
+# Minimum gh CLI version that supports `gh attestation verify`.
+_MIN_GH_VERSION = (2, 49, 0)
 
 _ARCH_MAP = {
     "amd64": "x86_64",
@@ -24,6 +28,70 @@ _VERSION_MAP = {
     "4.20": ("4.20.1", "20260316"),
     "4.19": ("4.19.1.1", "20260316"),
 }
+
+def _parse_gh_version(version_string):
+    """Parses a 'gh version X.Y.Z (date)' string into a (major, minor, patch) tuple."""
+    for line in version_string.split("\n"):
+        line = line.strip()
+        if line.startswith("gh version "):
+            parts = line.split(" ")[2].split(".")
+            if len(parts) >= 3:
+                return (int(parts[0]), int(parts[1]), int(parts[2]))
+    return None
+
+def _format_error(rule_name, message):
+    """Formats an error message with a header and footer banner."""
+    return """
+---------------===============[[ Begin toolchains_rpmbuild_prebuilt error ]]===============---------------
+{}
+- install it from https://cli.github.com/, or
+- to skip verification, set verify_provenance = False on the {} rule.
+---------------===============[[  End toolchains_rpmbuild_prebuilt error  ]]===============---------------
+""".format(message, rule_name)
+
+def _verify_provenance(rctx, tarball_path):
+    """Verifies SLSA provenance for a downloaded tarball using gh attestation verify."""
+    gh = rctx.which("gh")
+    if not gh:
+        fail(_format_error(rctx.original_name, "SLSA provenance verification requires the GitHub CLI (gh) but it was not found on PATH."))
+
+    result = rctx.execute([gh, "version"])
+    if result.return_code != 0:
+        fail("Failed to run 'gh version': {}".format(result.stderr))
+
+    version = _parse_gh_version(result.stdout)
+    if version == None:
+        fail("Could not parse gh CLI version from: {}".format(result.stdout))
+    if version < _MIN_GH_VERSION:
+        fail(_format_error(
+            rctx.original_name,
+            "gh CLI version {}.{}.{} is too old for attestation verification (need >= {}.{}.{}).".format(
+                version[0],
+                version[1],
+                version[2],
+                _MIN_GH_VERSION[0],
+                _MIN_GH_VERSION[1],
+                _MIN_GH_VERSION[2],
+            ),
+        ))
+
+    result = rctx.execute([
+        gh,
+        "attestation",
+        "verify",
+        tarball_path,
+        "--repo",
+        _ATTESTATION_REPO,
+    ])
+    if result.return_code != 0:
+        fail(_format_error(
+            rctx.original_name,
+            "SLSA provenance verification failed for {}:\n{}\n{}".format(
+                tarball_path,
+                result.stdout,
+                result.stderr,
+            ),
+        ))
 
 def _prebuilt_rpmbuild_toolchain(rctx):
     if rctx.attr.arch:
@@ -60,10 +128,18 @@ def _prebuilt_rpmbuild_toolchain(rctx):
             ", ".join(_TARBALL_TO_SHA256.keys()),
         ))
 
-    rctx.download_and_extract(
+    tarball_path = rctx.path(tarball_name)
+    rctx.download(
         url = "{}/{}".format(_DOWNLOAD_BASE_URL, tarball_name),
+        output = tarball_path,
         sha256 = sha256,
     )
+
+    if rctx.attr.verify_provenance:
+        _verify_provenance(rctx, tarball_path)
+
+    rctx.extract(tarball_path)
+    rctx.delete(tarball_path)
 
     # RPM 6 requires at least one .attr file in the fileattrs directory.
     # Provide a minimal one so file processing doesn't fail.
@@ -93,6 +169,10 @@ prebuilt_rpmbuild_toolchain = repository_rule(
     attrs = {
         "arch": attr.string(
             doc = "Target CPU architecture (e.g. \"x86_64\", \"aarch64\"). Defaults to the host architecture if not specified. Set this when the remote execution platform differs from the host.",
+        ),
+        "verify_provenance": attr.bool(
+            default = True,
+            doc = "Verify SLSA build provenance of the downloaded tarball using the GitHub CLI (gh). Requires gh >= 2.49.0 on PATH. Set to False to skip verification.",
         ),
         "version": attr.string(
             default = "6.0",
