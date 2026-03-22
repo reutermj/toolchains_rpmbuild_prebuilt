@@ -22,10 +22,13 @@ jobs:
         run: |
           dnf install -y --setopt=install_weak_deps=False \
             rpm \
-            git
+            git \
+            gh
 
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
       - name: Build and validate RPM (rpm ${{ matrix.rpm_version }})
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: ./bazel test //tests/... --repo_env=rpmbuild_version=${{ matrix.rpm_version }}
